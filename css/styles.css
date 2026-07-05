@@ -16,7 +16,7 @@
   --color-text: #1E293B;
   --color-text-muted: #64748B;
   --color-border: #E2E8F0;
-  --color-soft: #ECFDF5;
+  --color-soft: rgba(16, 185, 129, 0.07);
   --color-panel: #F1F5F9;
 
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -74,7 +74,11 @@ p { margin: 0 0 1em; color: var(--color-text-muted); }
 }
 
 .section { padding: clamp(2.5rem, 6vw, 5rem) 0; }
-.section-bg-slate { background: var(--color-soft); }
+.section-bg-slate {
+  background: var(--color-soft);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
 
 .section-header { text-align: center; max-width: 720px; margin: 0 auto 2.5rem; }
 
@@ -144,7 +148,9 @@ p { margin: 0 0 1em; color: var(--color-text-muted); }
   position: sticky;
   top: 0;
   z-index: 900;
-  background: var(--color-white);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--color-border);
   box-shadow: var(--shadow-sm);
 }
@@ -450,6 +456,20 @@ p { margin: 0 0 1em; color: var(--color-text-muted); }
   padding: 0.25rem;
 }
 
+.footer-badge-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 64px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.9rem;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.footer-badge-link:hover { box-shadow: var(--shadow-sm); transform: translateY(-2px); }
+.footer-badge-link img { height: 40px; width: auto; display: block; }
+
 .footer-bottom {
   display: flex;
   flex-wrap: wrap;
@@ -460,31 +480,12 @@ p { margin: 0 0 1em; color: var(--color-text-muted); }
   color: var(--color-text-muted);
 }
 
-/* -------------------- Sticky WhatsApp Widget -------------------- */
-.whatsapp-widget {
-  position: fixed;
-  right: 1.25rem;
-  bottom: 1.25rem;
-  z-index: 950;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: var(--color-emerald);
-  color: var(--color-white);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-lg);
-  animation: whatsapp-pulse 2.4s infinite;
+/* -------------------- Footer Reviews Widget -------------------- */
+.footer-reviews {
+  padding-top: 2rem;
+  margin-top: 0.5rem;
 }
-.whatsapp-widget:hover { background: var(--color-emerald-dark); text-decoration: none; }
-.whatsapp-widget svg { width: 30px; height: 30px; }
-
-@keyframes whatsapp-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55), var(--shadow-lg); }
-  70% { box-shadow: 0 0 0 14px rgba(16, 185, 129, 0), var(--shadow-lg); }
-  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0), var(--shadow-lg); }
-}
+.footer-reviews .footer-heading { text-align: center; margin-bottom: 1.25rem; }
 
 /* -------------------- Placeholder page (stub) -------------------- */
 .placeholder-section {

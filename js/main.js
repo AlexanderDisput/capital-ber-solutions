@@ -19,13 +19,6 @@
       });
     }
 
-    var whatsappBtn = document.getElementById('whatsapp-widget-click');
-    if (whatsappBtn) {
-      whatsappBtn.addEventListener('click', function () {
-        pushEvent('whatsapp_click', { cta_id: 'whatsapp-widget-click' });
-      });
-    }
-
     var quoteForm = document.getElementById('quote-enquiry-form');
     if (quoteForm) {
       quoteForm.addEventListener('submit', function () {

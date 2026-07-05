@@ -172,14 +172,19 @@ p { margin: 0 0 1em; color: var(--color-text-muted); }
 .brand:hover { text-decoration: none; }
 .brand-logo { height: 80px; width: auto; display: block; }
 
-.main-nav { display: none; }
-.main-nav ul { display: flex; align-items: center; gap: 1.5rem; }
-.main-nav a {
-  color: var(--color-slate);
-  font-weight: 600;
-  font-size: 0.95rem;
+/* Nav is hamburger-only at every breakpoint: the toggle button always
+   opens the same dropdown panel instead of showing a persistent link row. */
+.header-reviews {
+  display: none;
+  max-width: 200px;
+  max-height: 44px;
+  overflow: hidden;
+  transform: scale(0.7);
+  transform-origin: left center;
 }
-.main-nav a:hover { color: var(--color-emerald-dark); text-decoration: none; }
+@media (min-width: 1100px) {
+  .header-reviews { display: block; }
+}
 
 .nav-toggle {
   display: inline-flex;
@@ -195,12 +200,10 @@ p { margin: 0 0 1em; color: var(--color-text-muted); }
 .header-cta { display: none; }
 
 @media (min-width: 900px) {
-  .main-nav { display: block; }
-  .nav-toggle { display: none; }
   .header-cta { display: inline-flex; }
 }
 
-/* Mobile nav panel */
+/* Mobile nav panel (the sole nav menu, toggled by the hamburger at any width) */
 .mobile-nav-panel {
   display: none;
   border-top: 1px solid var(--color-border);
@@ -214,10 +217,6 @@ p { margin: 0 0 1em; color: var(--color-text-muted); }
   color: var(--color-slate);
   font-weight: 600;
   border-bottom: 1px solid var(--color-border);
-}
-
-@media (min-width: 900px) {
-  .mobile-nav-panel { display: none !important; }
 }
 
 /* -------------------- Hero -------------------- */
@@ -283,11 +282,6 @@ p { margin: 0 0 1em; color: var(--color-text-muted); }
   font-size: 0.9rem;
 }
 .hero-trust strong { color: var(--color-slate); }
-
-.hero-reviews {
-  margin-top: 1.25rem;
-  max-width: 420px;
-}
 
 /* -------------------- Card Grids -------------------- */
 .grid {
@@ -530,7 +524,6 @@ p { margin: 0 0 1em; color: var(--color-text-muted); }
 .hero-copy .hero-actions,
 .page-hero .hero-actions { animation: fadeSlideUp 0.7s ease 0.35s both; }
 .hero-trust { animation: fadeSlideUp 0.7s ease 0.45s both; }
-.hero-reviews { animation: fadeSlideUp 0.7s ease 0.55s both; }
 .hero-image { animation: scaleFadeIn 0.9s ease 0.3s both; }
 .page-hero .breadcrumbs { animation: fadeSlideUp 0.5s ease both; }
 
@@ -562,7 +555,6 @@ p { margin: 0 0 1em; color: var(--color-text-muted); }
   .hero-copy p.lede, .page-hero p.lede,
   .hero-copy .hero-actions, .page-hero .hero-actions,
   .hero-trust,
-  .hero-reviews,
   .hero-image,
   .page-hero .breadcrumbs {
     animation: none;

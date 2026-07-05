@@ -284,6 +284,11 @@ p { margin: 0 0 1em; color: var(--color-text-muted); }
 }
 .hero-trust strong { color: var(--color-slate); }
 
+.hero-reviews {
+  margin-top: 1.25rem;
+  max-width: 420px;
+}
+
 /* -------------------- Card Grids -------------------- */
 .grid {
   display: grid;
@@ -525,6 +530,7 @@ p { margin: 0 0 1em; color: var(--color-text-muted); }
 .hero-copy .hero-actions,
 .page-hero .hero-actions { animation: fadeSlideUp 0.7s ease 0.35s both; }
 .hero-trust { animation: fadeSlideUp 0.7s ease 0.45s both; }
+.hero-reviews { animation: fadeSlideUp 0.7s ease 0.55s both; }
 .hero-image { animation: scaleFadeIn 0.9s ease 0.3s both; }
 .page-hero .breadcrumbs { animation: fadeSlideUp 0.5s ease both; }
 
@@ -556,6 +562,7 @@ p { margin: 0 0 1em; color: var(--color-text-muted); }
   .hero-copy p.lede, .page-hero p.lede,
   .hero-copy .hero-actions, .page-hero .hero-actions,
   .hero-trust,
+  .hero-reviews,
   .hero-image,
   .page-hero .breadcrumbs {
     animation: none;

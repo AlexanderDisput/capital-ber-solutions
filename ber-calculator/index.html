@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en-IE">
+<head>
+<meta charset="UTF-8">
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-XXXXXXX');</script>
+<!-- End Google Tag Manager -->
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free BER Savings & Grant Calculator | Capital BER Solutions</title>
+<meta name="description" content="Estimate your energy savings, SEAI grant amount, and payback period for a BER upgrade in Dublin. Free calculator based on median SEAI grant and market data.">
+<link rel="canonical" href="https://capitalbersolutions.ie/ber-calculator/">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Free BER Savings & Grant Calculator | Capital BER Solutions">
+<meta property="og:description" content="Estimate your energy savings, SEAI grant amount, and payback period for a BER upgrade in Dublin.">
+<meta property="og:url" content="https://capitalbersolutions.ie/ber-calculator/">
+
+<link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-XXXXXXX"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="../"><img src="../assets/logo.png" alt="Capital BER Solutions" class="brand-logo" width="180" height="58"></a>
+
+    <div class="header-rating" aria-label="Rated 4.9 out of 5 on Google">
+      <span class="header-rating-stars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+      <span class="header-rating-score">4.9</span>
+      <span class="header-rating-label">Google Rating</span>
+    </div>
+
+    <a class="btn header-calc-btn" href="../ber-calculator/">Free Savings Calculator</a>
+
+    <a class="btn btn-conversion header-cta" id="hero-phone-btn" href="tel:+353XXXXXXXXX">Call Now</a>
+
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav" aria-label="Toggle navigation menu">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
+  </div>
+
+  <nav class="mobile-nav-panel" id="mobile-nav" aria-label="Mobile">
+    <ul>
+      <li><a href="../ber-assessor-dublin/">BER Assessor Dublin</a></li>
+      <li><a href="../ber-certificate-dublin/">BER Certificate Dublin</a></li>
+      <li><a href="../ber-for-selling-house/">Selling a House</a></li>
+      <li><a href="../ber-for-rental-property/">Rental Property</a></li>
+      <li><a href="../ber-calculator/">Savings Calculator</a></li>
+      <li><a href="../about/">About</a></li>
+      <li><a href="tel:+353XXXXXXXXX">Call Now</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main id="main-content">
+
+  <section class="page-hero">
+    <div class="container">
+      <p class="breadcrumbs"><a href="../">Home</a> / BER Savings Calculator</p>
+      <h1>Free BER Savings &amp; Grant Calculator</h1>
+      <p class="lede">Estimate your annual energy savings, available SEAI grant, net cost, and payback period for a BER upgrade &mdash; based on median SEAI grant structures and market data for Dublin properties.</p>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="calculator-heading">
+    <div class="container">
+      <h2 id="calculator-heading" class="visually-hidden">BER Savings Calculator</h2>
+
+      <div class="quote-section">
+        <form id="ber-calculator-form">
+          <div class="form-grid">
+            <div class="field">
+              <label for="calc-current-rating">Current BER Rating</label>
+              <select id="calc-current-rating" required>
+                <option value="" disabled selected>Select your current rating</option>
+                <option value="G">G</option>
+                <option value="F">F</option>
+                <option value="E">E</option>
+                <option value="D">D</option>
+                <option value="C">C</option>
+                <option value="B">B</option>
+                <option value="A">A</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="calc-property-type">Property Type</label>
+              <select id="calc-property-type" required>
+                <option value="" disabled selected>Select property type</option>
+                <option value="apartment">Apartment</option>
+                <option value="mid-terrace">Mid-Terrace</option>
+                <option value="semi-detached">Semi-Detached</option>
+                <option value="detached">Detached</option>
+              </select>
+            </div>
+            <div class="field field-full">
+              <label for="calc-property-value">Estimated Property Value (&euro;) <span class="field-optional">&mdash; optional, used only for the equity estimate</span></label>
+              <input type="number" id="calc-property-value" min="0" step="1000" placeholder="e.g. 400000">
+            </div>
+          </div>
+
+          <div class="calc-route-select">
+            <h3>Choose Your Upgrade Route</h3>
+            <div class="route-options">
+              <label class="route-option">
+                <span><input type="radio" name="calc-route" value="deep" checked><span class="route-option-title">Deep Retrofit (One Stop Shop)</span></span>
+                <span class="route-option-desc">Overhaul your home to reach a B rating in one project, with maximum government grants.</span>
+              </label>
+              <label class="route-option">
+                <span><input type="radio" name="calc-route" value="individual"><span class="route-option-title">Individual Upgrades (&Agrave; La Carte)</span></span>
+                <span class="route-option-desc">Pick specific measures to improve your rating step by step.</span>
+              </label>
+            </div>
+            <p class="calc-note" id="calc-deep-note" hidden>Your current rating is already B or higher, so the Deep Retrofit "one stop shop" grant package doesn't apply &mdash; try the Individual Upgrades route instead, or contact us directly for tailored advice.</p>
+          </div>
+
+          <div class="calc-individual-measures" id="calc-individual-measures" hidden>
+            <h3>Select Your Upgrades</h3>
+            <div class="measures-grid">
+              <label class="measure-card">
+                <span><input type="checkbox" name="calc-measure" value="attic"><span class="measure-card-title">Attic Insulation</span></span>
+                <span class="measure-card-meta">+1&ndash;2 grades &middot; &euro;1,500&ndash;&euro;3,500 &middot; grant up to &euro;2,000</span>
+              </label>
+              <label class="measure-card">
+                <span><input type="checkbox" name="calc-measure" value="cavity"><span class="measure-card-title">Cavity Wall Insulation</span></span>
+                <span class="measure-card-meta">+1&ndash;2 grades &middot; &euro;1,500&ndash;&euro;3,000 &middot; grant up to &euro;1,800</span>
+              </label>
+              <label class="measure-card">
+                <span><input type="checkbox" name="calc-measure" value="heating-controls"><span class="measure-card-title">Heating Controls</span></span>
+                <span class="measure-card-meta">+0.5&ndash;1 grade &middot; &euro;800&ndash;&euro;2,000 &middot; grant &euro;700 (fixed)</span>
+              </label>
+              <label class="measure-card">
+                <span><input type="checkbox" name="calc-measure" value="solar"><span class="measure-card-title">Solar PV Panels (4kWp)</span></span>
+                <span class="measure-card-meta">+1&ndash;2 grades &middot; &euro;5,000&ndash;&euro;10,000 &middot; grant up to &euro;1,800</span>
+              </label>
+              <label class="measure-card">
+                <span><input type="checkbox" name="calc-measure" value="heat-pump"><span class="measure-card-title">Heat Pump System</span></span>
+                <span class="measure-card-meta">+2&ndash;4 grades &middot; &euro;12,000&ndash;&euro;18,000 &middot; grant up to &euro;12,500</span>
+              </label>
+              <label class="measure-card">
+                <span><input type="checkbox" name="calc-measure" value="external-wall"><span class="measure-card-title">External Wall Insulation</span></span>
+                <span class="measure-card-meta">+2&ndash;3 grades &middot; &euro;12,000&ndash;&euro;24,000 &middot; grant up to &euro;8,000</span>
+              </label>
+            </div>
+            <p class="calc-inline-error" id="calc-measure-error" hidden>Please select at least one upgrade to calculate your savings.</p>
+          </div>
+
+          <button class="btn btn-conversion" type="submit">Calculate My Savings</button>
+        </form>
+
+        <div class="calc-results" id="calc-results" hidden aria-live="polite">
+          <h2>Your Estimated Savings</h2>
+          <div class="stat-grid">
+            <div class="stat-tile">
+              <span class="stat-label">Current Est. Annual Bill</span>
+              <span class="stat-value" id="result-current-bill">&mdash;</span>
+            </div>
+            <div class="stat-tile">
+              <span class="stat-label">Projected Rating</span>
+              <span class="stat-value" id="result-projected-grade">&mdash;</span>
+            </div>
+            <div class="stat-tile">
+              <span class="stat-label">Projected Annual Bill</span>
+              <span class="stat-value" id="result-projected-bill">&mdash;</span>
+            </div>
+            <div class="stat-tile stat-tile-highlight">
+              <span class="stat-label">Annual Energy Savings</span>
+              <span class="stat-value" id="result-annual-savings">&mdash;</span>
+            </div>
+            <div class="stat-tile">
+              <span class="stat-label">Total Gross Cost</span>
+              <span class="stat-value" id="result-gross-cost">&mdash;</span>
+            </div>
+            <div class="stat-tile">
+              <span class="stat-label">SEAI Grant</span>
+              <span class="stat-value" id="result-grant">&mdash;</span>
+            </div>
+            <div class="stat-tile stat-tile-highlight">
+              <span class="stat-label">Net Cost to You</span>
+              <span class="stat-value" id="result-net-cost">&mdash;</span>
+            </div>
+            <div class="stat-tile stat-tile-highlight">
+              <span class="stat-label">Energy Payback Period</span>
+              <span class="stat-value" id="result-payback">&mdash;</span>
+            </div>
+            <div class="stat-tile" id="result-equity-tile" hidden>
+              <span class="stat-label">Est. Property Value Uplift</span>
+              <span class="stat-value" id="result-equity">&mdash;</span>
+            </div>
+          </div>
+          <p class="calc-disclaimer">These figures are estimates based on median SEAI grant structures and market data, for illustration only. For an accurate, property-specific assessment and quote, get in touch below.</p>
+          <div class="calc-cta">
+            <a class="btn btn-conversion" id="hero-phone-btn" href="tel:+353XXXXXXXXX">Call Now for a Quote</a>
+            <a class="btn btn-secondary" href="../#quote-enquiry-form">Get an Instant Quote</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Elfsight WhatsApp Chat | Untitled WhatsApp Chat -->
+<script src="https://elfsightcdn.com/platform.js" async></script>
+<div class="elfsight-app-dedeca96-830f-4de2-af07-1d0d0972bf53" data-elfsight-app-lazy></div>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-eeat">
+        <h3 class="footer-heading">Capital BER Solutions</h3>
+        <p><strong>SEAI Registration Number:</strong> [Insert Assessor Number Here]</p>
+        <p>Based in Sutton, Dublin 13. Serving Dublin and North Dublin.</p>
+        <div class="footer-badges" aria-label="Insurance and accreditation badges">
+          <a class="footer-badge-link" href="https://www.hiscox.ie/" target="_blank" rel="noopener" aria-label="Insured by Hiscox">
+            <img src="../assets/hiscox-insurance.jpg" alt="Hiscox Insurance" loading="lazy" width="400" height="266">
+          </a>
+          <a class="footer-badge-link" href="https://www.cro.ie/" target="_blank" rel="noopener" aria-label="Registered with the Companies Registration Office">
+            <img src="../assets/cro-registration.jpg" alt="Companies Registration Office" loading="lazy" width="400" height="266">
+          </a>
+          <div class="footer-badge">SEAI Registered Assessor</div>
+        </div>
+      </div>
+
+      <nav class="footer-nav" aria-label="Footer">
+        <h3 class="footer-heading">Explore</h3>
+        <ul>
+          <li><a href="../">Home</a></li>
+          <li><a href="../ber-assessor-dublin/">BER Assessor Dublin</a></li>
+          <li><a href="../ber-certificate-dublin/">BER Certificate Dublin</a></li>
+          <li><a href="../ber-for-selling-house/">BER for Selling a House</a></li>
+        </ul>
+      </nav>
+
+      <nav class="footer-nav" aria-label="Footer secondary">
+        <h3 class="footer-heading">&nbsp;</h3>
+        <ul>
+          <li><a href="../ber-for-rental-property/">BER for Rental Property</a></li>
+          <li><a href="../ber-dublin-13/">BER Assessor Dublin 13</a></li>
+          <li><a href="../about/">About Us</a></li>
+          <li><a href="../ber-calculator/">Savings Calculator</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <div class="footer-reviews">
+      <h3 class="footer-heading">What Our Customers Say</h3>
+      <!-- Elfsight Google Reviews | Untitled Google Reviews -->
+      <div class="elfsight-app-6807f942-98dd-4336-b883-8662a371c236" data-elfsight-app-lazy></div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>&copy; <span id="current-year">2026</span> Capital BER Solutions. All rights reserved.</span>
+      <span>SEAI Registered BER Assessor | Dublin &amp; North Dublin</span>
+    </div>
+  </div>
+</footer>
+
+<script src="../js/main.js"></script>
+<script src="../js/calculator.js"></script>
+</body>
+</html>

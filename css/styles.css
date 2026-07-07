@@ -218,8 +218,22 @@ p { margin: 0 0 1em; color: var(--color-text-muted); }
 
 .header-cta { display: none; }
 
+.header-calc-btn {
+  display: none;
+  background: var(--color-emerald);
+  color: var(--color-white);
+  border: none;
+  font-weight: 800;
+}
+.header-calc-btn:hover { background: var(--color-emerald-dark); }
+
 @media (min-width: 900px) {
   .header-cta { display: inline-flex; }
+  .header-calc-btn {
+    display: inline-flex;
+    padding: 1rem 2rem;
+    font-size: 1.05rem;
+  }
 }
 
 /* Mobile nav panel (the sole nav menu, toggled by the hamburger at any width) */
@@ -411,6 +425,139 @@ p { margin: 0 0 1em; color: var(--color-text-muted); }
 
 @media (min-width: 640px) {
   .quote-section .btn-conversion { width: auto; }
+}
+
+.field-optional { font-weight: 400; color: var(--color-text-muted); font-size: 0.82rem; }
+
+/* -------------------- BER Calculator -------------------- */
+.calc-route-select { margin-top: 2rem; }
+.calc-route-select h3,
+.calc-individual-measures h3 { margin-bottom: 1rem; }
+
+.route-options {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+  .route-options { grid-template-columns: repeat(2, 1fr); }
+}
+
+.route-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1.1rem 1.25rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.route-option:has(input:checked) {
+  border-color: var(--color-emerald);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+.route-option input { margin-right: 0.5rem; }
+.route-option-title { font-weight: 700; color: var(--color-slate); }
+.route-option-desc { font-size: 0.88rem; color: var(--color-text-muted); }
+
+.calc-individual-measures { margin-top: 2rem; }
+
+.measures-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+  .measures-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.measure-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem 1.15rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.measure-card:has(input:checked) {
+  border-color: var(--color-emerald);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+.measure-card input { margin-right: 0.5rem; }
+.measure-card-title { font-weight: 700; color: var(--color-slate); font-size: 0.95rem; }
+.measure-card-meta { font-size: 0.8rem; color: var(--color-text-muted); }
+
+.calc-inline-error {
+  color: #B91C1C;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-top: 0.75rem;
+}
+
+.calc-note {
+  margin-top: 0.75rem;
+  padding: 0.9rem 1.1rem;
+  background: var(--color-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  color: var(--color-slate);
+}
+
+.calc-results {
+  margin-top: 2.5rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.stat-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, 1fr);
+  margin-top: 1.5rem;
+}
+@media (min-width: 768px) {
+  .stat-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.stat-tile {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.1rem;
+}
+.stat-tile-highlight {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+.stat-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 0.35rem;
+}
+.stat-value {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-slate);
+}
+
+.calc-disclaimer {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-top: 1.5rem;
+}
+
+.calc-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  margin-top: 1rem;
 }
 
 /* -------------------- Footer (E-E-A-T) -------------------- */

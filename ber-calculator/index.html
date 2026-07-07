@@ -106,8 +106,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <option value="detached">Detached</option>
               </select>
             </div>
-            <div class="field field-full">
-              <label for="calc-property-value">Estimated Property Value (&euro;) <span class="field-optional">&mdash; optional, used only for the equity estimate</span></label>
+            <div class="field">
+              <label for="calc-build-year">When Was Your Home Built?</label>
+              <select id="calc-build-year" required>
+                <option value="" disabled selected>Select build year</option>
+                <option value="before-2011">Before 2011</option>
+                <option value="2011-2020">2011 &ndash; 2020</option>
+                <option value="2021-plus">2021 or later</option>
+                <option value="not-sure">Not sure</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="calc-property-value">Estimated Property Value (&euro;) <span class="field-optional">&mdash; optional</span></label>
               <input type="number" id="calc-property-value" min="0" step="1000" placeholder="e.g. 400000">
             </div>
           </div>
@@ -201,6 +211,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               <span class="stat-value" id="result-equity">&mdash;</span>
             </div>
           </div>
+          <p class="calc-note" id="calc-eligibility-note" hidden></p>
           <p class="calc-disclaimer">These figures are estimates based on median SEAI grant structures and market data, for illustration only. For an accurate, property-specific assessment and quote, get in touch below.</p>
           <div class="calc-cta">
             <a class="btn btn-conversion" id="hero-phone-btn" href="tel:+353XXXXXXXXX">Call Now for a Quote</a>

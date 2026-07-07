@@ -24,13 +24,33 @@
   };
 
   var UPGRADES = [
-    { id: 'attic', label: 'Attic Insulation', gradeMin: 1, gradeMax: 2, costMin: 1500, costMax: 3500, grant: 2000 },
-    { id: 'cavity', label: 'Cavity Wall Insulation', gradeMin: 1, gradeMax: 2, costMin: 1500, costMax: 3000, grant: 1800 },
-    { id: 'heating-controls', label: 'Heating Controls', gradeMin: 0.5, gradeMax: 1, costMin: 800, costMax: 2000, grant: 700 },
-    { id: 'solar', label: 'Solar PV Panels (4kWp)', gradeMin: 1, gradeMax: 2, costMin: 5000, costMax: 10000, grant: 1800 },
-    { id: 'heat-pump', label: 'Heat Pump System', gradeMin: 2, gradeMax: 4, costMin: 12000, costMax: 18000, grant: 12500 },
-    { id: 'external-wall', label: 'External Wall Insulation', gradeMin: 2, gradeMax: 3, costMin: 12000, costMax: 24000, grant: 8000 }
+    { id: 'attic', label: 'Attic Insulation', gradeMin: 1, gradeMax: 2, costMin: 1500, costMax: 3500, grant: 2000, grantCutoff: 2011 },
+    { id: 'cavity', label: 'Cavity Wall Insulation', gradeMin: 1, gradeMax: 2, costMin: 1500, costMax: 3000, grant: 1800, grantCutoff: 2011 },
+    { id: 'heating-controls', label: 'Heating Controls', gradeMin: 0.5, gradeMax: 1, costMin: 800, costMax: 2000, grant: 700, grantCutoff: 2011 },
+    { id: 'solar', label: 'Solar PV Panels (4kWp)', gradeMin: 1, gradeMax: 2, costMin: 5000, costMax: 10000, grant: 1800, grantCutoff: 2021 },
+    { id: 'heat-pump', label: 'Heat Pump System', gradeMin: 2, gradeMax: 4, costMin: 12000, costMax: 18000, grant: 12500, grantCutoff: 2021 },
+    { id: 'external-wall', label: 'External Wall Insulation', gradeMin: 2, gradeMax: 3, costMin: 12000, costMax: 24000, grant: 8000, grantCutoff: 2011 }
   ];
+
+  // SEAI grant eligibility depends on when the home was built: insulation,
+  // windows/doors and heating controls require built-before-2011; heat
+  // pumps and solar require built-before-2021. 'not-sure' assumes eligible
+  // (today's behavior) but the UI shows a caveat note in that case.
+  function isGrantEligible(buildYear, cutoffYear) {
+    if (buildYear === 'not-sure' || buildYear === 'before-2011') return true;
+    if (buildYear === '2011-2020') return cutoffYear === 2021;
+    return false; // '2021-plus'
+  }
+
+  var BUILD_YEAR_LABELS = {
+    'before-2011': 'before 2011',
+    '2011-2020': '2011–2020',
+    '2021-plus': '2021 or later'
+  };
+
+  function buildYearLabel(buildYear) {
+    return BUILD_YEAR_LABELS[buildYear] || buildYear;
+  }
 
   function formatEUR(amount) {
     return new Intl.NumberFormat('en-IE', {
@@ -77,11 +97,14 @@
 
       var currentGrade = document.getElementById('calc-current-rating').value;
       var propertyType = document.getElementById('calc-property-type').value;
+      var buildYear = document.getElementById('calc-build-year').value;
       var propertyValueRaw = document.getElementById('calc-property-value').value;
       var propertyValue = propertyValueRaw ? parseFloat(propertyValueRaw) : 0;
       var route = currentRoute();
 
-      if (!currentGrade || !propertyType) return;
+      if (!currentGrade || !propertyType || !buildYear) return;
+
+      var ineligibleLabels = [];
 
       var currentIndex = GRADES.indexOf(currentGrade);
       var grossCost, grantAmount, netCost, projectedIndex;
@@ -97,9 +120,15 @@
         }
 
         grossCost = deep.gross;
-        grantAmount = deep.grant;
-        netCost = deep.net;
         projectedIndex = targetIndex;
+
+        if (isGrantEligible(buildYear, 2011)) {
+          grantAmount = deep.grant;
+        } else {
+          grantAmount = 0;
+          ineligibleLabels.push('the Deep Retrofit One Stop Shop grant (requires a home built before 2011)');
+        }
+        netCost = grossCost - grantAmount;
       } else {
         var checkedMeasures = Array.prototype.slice.call(
           form.querySelectorAll('input[name="calc-measure"]:checked')
@@ -119,8 +148,13 @@
           var upgrade = UPGRADES.filter(function (u) { return u.id === input.value; })[0];
           if (!upgrade) return;
           grossCost += (upgrade.costMin + upgrade.costMax) / 2;
-          grantAmount += upgrade.grant;
           totalGradeImprovement += (upgrade.gradeMin + upgrade.gradeMax) / 2;
+
+          if (isGrantEligible(buildYear, upgrade.grantCutoff)) {
+            grantAmount += upgrade.grant;
+          } else {
+            ineligibleLabels.push(upgrade.label);
+          }
         });
 
         grantAmount = Math.min(grantAmount, grossCost);
@@ -162,6 +196,26 @@
         equityTile.hidden = true;
       }
 
+      var eligibilityNote = document.getElementById('calc-eligibility-note');
+      var noteParts = [];
+      if (ineligibleLabels.length > 0) {
+        noteParts.push(
+          'Based on a build year of ' + buildYearLabel(buildYear) + ', SEAI grants do not apply to: ' +
+          ineligibleLabels.join(', ') + '. Full (ungranted) cost is included in the totals above.'
+        );
+      }
+      if (buildYear === 'not-sure') {
+        noteParts.push(
+          'SEAI grant eligibility depends on your home’s exact build year — the figures above assume you qualify. Contact us to confirm your exact eligibility.'
+        );
+      }
+      if (noteParts.length > 0) {
+        eligibilityNote.textContent = noteParts.join(' ');
+        eligibilityNote.hidden = false;
+      } else {
+        eligibilityNote.hidden = true;
+      }
+
       resultsPanel.hidden = false;
       resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -169,7 +223,8 @@
         route: route,
         current_grade: currentGrade,
         projected_grade: projectedGrade,
-        property_type: propertyType
+        property_type: propertyType,
+        build_year: buildYear
       });
     });
   });

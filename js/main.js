@@ -19,10 +19,45 @@
       });
     }
 
+    // Quote form: submitted via fetch() to FormSubmit's AJAX endpoint so the
+    // visitor sees an inline confirmation on our own page instead of being
+    // sent to FormSubmit's hosted "thank you" page. The form still has a
+    // real action/method, so it degrades to a normal POST (via FormSubmit's
+    // own page) if JavaScript fails to run.
     var quoteForm = document.getElementById('quote-enquiry-form');
     if (quoteForm) {
-      quoteForm.addEventListener('submit', function () {
-        pushEvent('form_submit', { form_id: 'quote-enquiry-form' });
+      var quoteSuccess = document.getElementById('quote-success');
+      var quoteError = document.getElementById('quote-error');
+      var quoteSubmitBtn = quoteForm.querySelector('button[type="submit"]');
+
+      quoteForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (quoteError) quoteError.hidden = true;
+        if (quoteSubmitBtn) {
+          quoteSubmitBtn.disabled = true;
+          quoteSubmitBtn.textContent = 'Sending...';
+        }
+
+        var ajaxAction = quoteForm.action.replace('formsubmit.co/', 'formsubmit.co/ajax/');
+
+        fetch(ajaxAction, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json' },
+          body: new FormData(quoteForm)
+        })
+          .then(function (response) {
+            if (!response.ok) throw new Error('Submission failed');
+            pushEvent('form_submit', { form_id: 'quote-enquiry-form' });
+            quoteForm.hidden = true;
+            if (quoteSuccess) quoteSuccess.hidden = false;
+          })
+          .catch(function () {
+            if (quoteError) quoteError.hidden = false;
+            if (quoteSubmitBtn) {
+              quoteSubmitBtn.disabled = false;
+              quoteSubmitBtn.textContent = 'Request My Quote';
+            }
+          });
       });
     }
 

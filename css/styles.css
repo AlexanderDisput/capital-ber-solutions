@@ -436,6 +436,13 @@ p { margin: 0 0 1em; color: var(--color-text-muted); }
 
 .field-optional { font-weight: 400; color: var(--color-text-muted); font-size: 0.82rem; }
 
+.quote-success {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+.quote-success h3 { margin-bottom: 0.5rem; }
+.quote-success p { margin-bottom: 1.5rem; }
+
 /* -------------------- BER Calculator -------------------- */
 .calc-route-select { margin-top: 2rem; }
 .calc-route-select h3,

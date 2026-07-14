@@ -189,11 +189,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="quote-section">
+        <div class="quote-success" id="quote-success" hidden>
+          <h3>Thanks &mdash; your enquiry has been sent!</h3>
+          <p>We'll get back to you shortly. In the meantime, feel free to call us directly.</p>
+          <a class="btn btn-conversion" href="tel:+353XXXXXXXXX">Call Now</a>
+        </div>
         <form id="quote-enquiry-form" action="https://formsubmit.co/info@capitalbersolutions.ie" method="POST">
           <input type="hidden" name="_subject" value="New Quote Enquiry - Capital BER Solutions">
           <input type="hidden" name="_template" value="table">
           <input type="hidden" name="_captcha" value="false">
           <input type="hidden" name="_next" value="https://capitalbersolutions.ie/">
+          <p class="calc-inline-error" id="quote-error" hidden>Something went wrong sending your enquiry &mdash; please call us directly, or try again in a moment.</p>
           <div class="form-grid">
             <div class="field">
               <label for="quote-name">Full Name</label>

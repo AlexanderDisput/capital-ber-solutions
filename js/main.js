@@ -40,18 +40,29 @@
 
         var ajaxAction = quoteForm.action.replace('formsubmit.co/', 'formsubmit.co/ajax/');
 
+        // FormSubmit has been observed to hang indefinitely on some requests
+        // with no response at all - without a timeout, fetch() would leave
+        // the button stuck on "Sending..." forever with no feedback.
+        var timeoutController = ('AbortController' in window) ? new AbortController() : null;
+        var timeoutId = timeoutController
+          ? setTimeout(function () { timeoutController.abort(); }, 15000)
+          : null;
+
         fetch(ajaxAction, {
           method: 'POST',
           headers: { 'Accept': 'application/json' },
-          body: new FormData(quoteForm)
+          body: new FormData(quoteForm),
+          signal: timeoutController ? timeoutController.signal : undefined
         })
           .then(function (response) {
+            if (timeoutId) clearTimeout(timeoutId);
             if (!response.ok) throw new Error('Submission failed');
             pushEvent('form_submit', { form_id: 'quote-enquiry-form' });
             quoteForm.hidden = true;
             if (quoteSuccess) quoteSuccess.hidden = false;
           })
           .catch(function () {
+            if (timeoutId) clearTimeout(timeoutId);
             if (quoteError) quoteError.hidden = false;
             if (quoteSubmitBtn) {
               quoteSubmitBtn.disabled = false;

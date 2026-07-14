@@ -784,28 +784,7 @@ p { margin: 0 0 1em; color: var(--color-text-muted); }
 .faq-item p { padding-bottom: 1.1rem; margin: 0; }
 
 /* -------------------- Bio Section -------------------- */
-.bio {
-  display: grid;
-  gap: 2rem;
-  grid-template-columns: 1fr;
-  align-items: start;
-}
-@media (min-width: 768px) {
-  .bio { grid-template-columns: 280px 1fr; }
-}
-.bio-photo {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: var(--radius-lg);
-  background: var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-muted);
-  font-size: 0.9rem;
-  text-align: center;
-  border: 1px solid var(--color-border);
-}
+.bio-text { max-width: 720px; }
 
 /* -------------------- Principles Grid -------------------- */
 .principle-card { text-align: left; }

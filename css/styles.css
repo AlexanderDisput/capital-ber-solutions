@@ -35,7 +35,7 @@
 /* -------------------- Reset -------------------- */
 *, *::before, *::after { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; scroll-padding-top: 120px; }
 
 body {
   margin: 0;

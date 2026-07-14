@@ -181,11 +181,12 @@
           <p>We'll get back to you shortly. In the meantime, feel free to call us directly.</p>
           <a class="btn btn-conversion" href="tel:+353XXXXXXXXX">Call Now</a>
         </div>
-        <form id="quote-enquiry-form" action="https://formsubmit.co/info@capitalbersolutions.ie" method="POST">
-          <input type="hidden" name="_subject" value="New Quote Enquiry - Capital BER Solutions">
-          <input type="hidden" name="_template" value="table">
-          <input type="hidden" name="_captcha" value="false">
-          <input type="hidden" name="_next" value="https://capitalbersolutions.ie/">
+        <form id="quote-enquiry-form" action="https://api.web3forms.com/submit" method="POST">
+          <input type="hidden" name="access_key" value="19f4dc74-ef68-4489-b84e-e5d2f71327bd">
+          <input type="hidden" name="subject" value="New Quote Enquiry - Capital BER Solutions">
+          <input type="hidden" name="from_name" value="Capital BER Solutions Website">
+          <input type="hidden" name="redirect" value="https://capitalbersolutions.ie/">
+          <input type="checkbox" name="botcheck" style="display:none" tabindex="-1" autocomplete="off" aria-hidden="true">
           <p class="calc-inline-error" id="quote-error" hidden>Something went wrong sending your enquiry &mdash; please call us directly, or try again in a moment.</p>
           <div class="form-grid">
             <div class="field">

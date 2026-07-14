@@ -19,11 +19,10 @@
       });
     }
 
-    // Quote form: submitted via fetch() to FormSubmit's AJAX endpoint so the
-    // visitor sees an inline confirmation on our own page instead of being
-    // sent to FormSubmit's hosted "thank you" page. The form still has a
-    // real action/method, so it degrades to a normal POST (via FormSubmit's
-    // own page) if JavaScript fails to run.
+    // Quote form: submitted via fetch() to Web3Forms so the visitor sees an
+    // inline confirmation on our own page. The form still has a real
+    // action/method, so it degrades to a normal POST (redirecting per the
+    // "redirect" hidden field) if JavaScript fails to run.
     var quoteForm = document.getElementById('quote-enquiry-form');
     if (quoteForm) {
       var quoteSuccess = document.getElementById('quote-success');
@@ -38,17 +37,15 @@
           quoteSubmitBtn.textContent = 'Sending...';
         }
 
-        var ajaxAction = quoteForm.action.replace('formsubmit.co/', 'formsubmit.co/ajax/');
-
-        // FormSubmit has been observed to hang indefinitely on some requests
-        // with no response at all - without a timeout, fetch() would leave
-        // the button stuck on "Sending..." forever with no feedback.
+        // A timeout guards against the request hanging indefinitely with no
+        // response, which would otherwise leave the button stuck on
+        // "Sending..." forever with no feedback to the visitor.
         var timeoutController = ('AbortController' in window) ? new AbortController() : null;
         var timeoutId = timeoutController
           ? setTimeout(function () { timeoutController.abort(); }, 15000)
           : null;
 
-        fetch(ajaxAction, {
+        fetch(quoteForm.action, {
           method: 'POST',
           headers: { 'Accept': 'application/json' },
           body: new FormData(quoteForm),

@@ -1,14 +1,33 @@
 /**
  * Capital BER Solutions — site interactivity
- * Pushes semantic events to window.dataLayer for GTM triggers/tags
- * (Google Ads conversion tracking is configured in the GTM dashboard
- * against these event names, not hard-coded here).
+ * Pushes semantic events to window.dataLayer for GA4, and fires the
+ * Google Ads "Submit lead form" conversion directly via gtag().
  */
 (function () {
   window.dataLayer = window.dataLayer || [];
 
   function pushEvent(eventName, extra) {
     window.dataLayer.push(Object.assign({ event: eventName }, extra || {}));
+  }
+
+  // Google Ads event snippet for the "Submit lead form" conversion.
+  // Fired on a successful quote-form submission (not on click) so that
+  // failed/aborted submissions aren't counted as conversions. `url` is
+  // never passed here since the form shows an inline success message
+  // instead of redirecting.
+  function gtag_report_conversion(url) {
+    var callback = function () {
+      if (typeof (url) != 'undefined') {
+        window.location = url;
+      }
+    };
+    gtag('event', 'conversion', {
+      'send_to': 'AW-18244503915/k4JkCMuG_-YcEOuS1PtD',
+      'value': 1.0,
+      'currency': 'EUR',
+      'event_callback': callback
+    });
+    return false;
   }
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -55,6 +74,7 @@
             if (timeoutId) clearTimeout(timeoutId);
             if (!response.ok) throw new Error('Submission failed');
             pushEvent('form_submit', { form_id: 'quote-enquiry-form' });
+            gtag_report_conversion();
             quoteForm.hidden = true;
             if (quoteSuccess) quoteSuccess.hidden = false;
           })

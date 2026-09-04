@@ -31,10 +31,19 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    var phoneBtn = document.getElementById('hero-phone-btn');
-    if (phoneBtn) {
-      phoneBtn.addEventListener('click', function () {
-        pushEvent('phone_click', { cta_id: 'hero-phone-btn' });
+    // Every tel: link on the page shares this class (some pages have more
+    // than one "Call Now" CTA, so this can no longer rely on a single id).
+    var phoneLinks = document.querySelectorAll('.js-tel-link');
+    phoneLinks.forEach(function (link) {
+      link.addEventListener('click', function () {
+        pushEvent('phone_click', { cta_id: link.id || 'tel-link' });
+      });
+    });
+
+    var whatsappBtn = document.getElementById('whatsapp-widget-click');
+    if (whatsappBtn) {
+      whatsappBtn.addEventListener('click', function () {
+        pushEvent('whatsapp_widget_chat_start', { cta_id: 'whatsapp-widget-click' });
       });
     }
 

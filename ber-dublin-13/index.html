@@ -7,6 +7,26 @@
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
+
+  // Google Consent Mode v2 — default to denied until the visitor chooses in
+  // the cookie banner (js/consent.js). A prior choice stored in localStorage
+  // is applied immediately here so returning visitors who already consented
+  // aren't re-defaulted to denied on every page load.
+  (function () {
+    var granted = false;
+    try {
+      var stored = JSON.parse(localStorage.getItem('cbs_consent'));
+      granted = !!stored && stored.status === 'granted';
+    } catch (e) {}
+    gtag('consent', 'default', {
+      'ad_storage': granted ? 'granted' : 'denied',
+      'ad_user_data': granted ? 'granted' : 'denied',
+      'ad_personalization': granted ? 'granted' : 'denied',
+      'analytics_storage': granted ? 'granted' : 'denied',
+      'wait_for_update': 500
+    });
+  })();
+
   gtag('js', new Date());
 
   // Configures Google Analytics 4
@@ -37,7 +57,7 @@
 
     <a class="btn header-calc-btn" href="../ber-calculator/">Free Savings Calculator</a>
 
-    <a class="btn btn-conversion header-cta" id="hero-phone-btn" href="tel:+353XXXXXXXXX">Call Now</a>
+    <a class="btn btn-conversion header-cta js-tel-link" id="hero-phone-btn" href="tel:+353857155221">Call Now</a>
 
     <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav" aria-label="Toggle navigation menu">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -56,7 +76,7 @@
       <li><a href="../ber-for-rental-property/">Rental Property</a></li>
       <li><a href="../ber-calculator/">Savings Calculator</a></li>
       <li><a href="../about/">About</a></li>
-      <li><a href="tel:+353XXXXXXXXX">Call Now</a></li>
+      <li><a class="js-tel-link" href="tel:+353857155221">Call Now</a></li>
     </ul>
   </nav>
 </header>
@@ -65,14 +85,21 @@
   <section class="section placeholder-section">
     <div class="container">
       <h1>BER Assessor Serving Dublin 13</h1>
-      <p>This page is under construction. Capital BER Solutions provides SEAI registered BER assessments across Dublin 13, Sutton, Bayside, Howth and surrounding areas. Full content coming soon &mdash; in the meantime, see our <a href="../ber-assessor-dublin/">BER Assessor Dublin</a> page or <a href="tel:+353XXXXXXXXX">call us</a> for an instant quote.</p>
+      <p>This page is under construction. Capital BER Solutions provides SEAI registered BER assessments across Dublin 13, Sutton, Bayside, Howth and surrounding areas. Full content coming soon &mdash; in the meantime, see our <a href="../ber-assessor-dublin/">BER Assessor Dublin</a> page or <a class="js-tel-link" href="tel:+353857155221">call us</a> for an instant quote.</p>
     </div>
   </section>
 </main>
 
-<!-- Elfsight WhatsApp Chat | Untitled WhatsApp Chat -->
+<!-- Elfsight platform script (still needed by the Google Reviews widget below) -->
 <script src="https://elfsightcdn.com/platform.js" async></script>
-<div class="elfsight-app-dedeca96-830f-4de2-af07-1d0d0972bf53" data-elfsight-app-lazy></div>
+
+<!-- Sticky WhatsApp Widget -->
+<a id="whatsapp-widget-click" class="whatsapp-fab" href="https://wa.me/353857155221?text=Hi%2C%20I%27d%20like%20a%20BER%20quote" target="_blank" rel="noopener" aria-label="Chat with us on WhatsApp">
+  <span class="whatsapp-fab-pulse" aria-hidden="true"></span>
+  <svg viewBox="0 0 32 32" fill="#fff" aria-hidden="true">
+    <path d="M16.004 3C9.376 3 4 8.373 4 15c0 2.31.646 4.47 1.77 6.31L4 29l7.86-1.74A11.94 11.94 0 0 0 16.004 27C22.63 27 28 21.63 28 15S22.63 3 16.004 3Zm6.98 17.02c-.293.83-1.45 1.52-2.383 1.72-.633.135-1.46.243-4.24-.91-3.556-1.47-5.845-5.08-6.023-5.315-.17-.235-1.44-1.92-1.44-3.66 0-1.74.91-2.595 1.234-2.95.323-.355.705-.443.94-.443.235 0 .47.002.675.012.216.01.507-.082.793.605.293.7.996 2.42 1.084 2.596.088.176.147.383.03.62-.117.235-.176.383-.352.588-.176.205-.372.457-.53.615-.176.176-.36.367-.156.72.205.353.91 1.5 1.955 2.43 1.343 1.196 2.475 1.567 2.828 1.744.353.176.558.147.764-.088.205-.235.878-1.02 1.113-1.372.235-.352.47-.294.793-.176.323.118 2.048.966 2.4 1.142.352.176.586.264.674.412.088.147.088.853-.205 1.683Z"></path>
+  </svg>
+</a>
 
 <footer class="site-footer">
   <div class="container">
@@ -109,6 +136,8 @@
           <li><a href="../ber-dublin-13/">BER Assessor Dublin 13</a></li>
           <li><a href="../about/">About Us</a></li>
           <li><a href="../ber-calculator/">Savings Calculator</a></li>
+          <li><a href="../privacy-policy/">Privacy &amp; Cookie Policy</a></li>
+          <li><a href="#" class="js-cookie-preferences">Cookie Preferences</a></li>
         </ul>
       </nav>
     </div>
@@ -126,6 +155,7 @@
   </div>
 </footer>
 
+<script src="../js/consent.js"></script>
 <script src="../js/main.js"></script>
 </body>
 </html>

@@ -34,6 +34,15 @@
 
   // Configures Google Ads
   gtag('config', 'AW-18244503915');
+
+  // Google Ads "Calls from your website" conversion. phone_conversion_number
+  // must match the number displayed/linked on the page; Google's tag swaps
+  // it for a forwarding number on ad-referred visits so call duration (60s+
+  // threshold configured in Ads) can be measured and reported as a
+  // conversion. No further JS is needed here — Google's tag handles the rest.
+  gtag('config', 'AW-18244503915/sEYtCOGb0ewcEOuS1PtD', {
+    'phone_conversion_number': '+353 85 715 5221'
+  });
 </script>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">

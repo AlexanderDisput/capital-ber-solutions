@@ -1,54 +1,93 @@
 // Capital BER Solutions — lead intake worker.
 //
-// Routes:
-//   POST /submit      quote form submission (Turnstile verify -> D1 insert -> Resend autoresponder)
-//   GET  /admin        the leads dashboard page
-//   GET  /api/leads     list all leads (JSON)
-//   PATCH /api/leads/:id  update status / difficulty / notes for one lead
+// Public routes:
+//   POST /submit            quote form submission
+//   GET  /admin/login        login page
+//   POST /admin/login        login handler (rate-limited)
+//   POST /admin/logout       clears the session
 //
-// NOTE — /admin and /api/leads have NO login gate yet. This is intentional
-// for now (design/preview pass with seed data only, no real customer PII
-// in the database) but MUST be fixed — add the admin username/password +
-// session-cookie auth discussed in the plan — before any real lead data
-// flows through here.
+// Admin routes (require a valid session cookie):
+//   GET   /admin              leads dashboard
+//   GET   /api/leads          list all leads
+//   PATCH /api/leads/:id      update status / difficulty / notes
+//   GET   /api/leads/export   CSV download of all leads
+//   GET   /api/stats          area / property-type breakdown
+//   POST  /api/admin/backup-now   manually trigger the monthly R2 backup (once R2 is wired in)
 //
-// WhatsApp sending is not wired in yet either — it gets added to /submit
-// once the Meta WhatsApp Business Platform setup is complete.
+// WhatsApp sending is not wired in yet — it gets added to /submit once the
+// Meta WhatsApp Business Platform setup is complete.
 
 const ALLOWED_ORIGIN = "https://capitalbersolutions.ie";
 const STATUSES = ["New", "Contacted", "Quoted", "Booked", "Lost"];
 const DIFFICULTIES = ["Easy", "Medium", "Hard"];
+const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+const RATE_LIMIT_WINDOW_MIN = 15;
+const RATE_LIMIT_MAX_ATTEMPTS = 5;
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const path = url.pathname;
 
     if (request.method === "OPTIONS") {
       return corsResponse(new Response(null, { status: 204 }));
     }
 
-    if (request.method === "POST" && url.pathname === "/submit") {
+    // --- public ---
+    if (request.method === "POST" && path === "/submit") {
       return handleSubmit(request, env);
     }
-
-    if (request.method === "GET" && url.pathname === "/admin") {
-      return new Response(adminPageHtml(), {
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-      });
+    if (request.method === "GET" && path === "/admin/login") {
+      return htmlResponse(loginPageHtml());
+    }
+    if (request.method === "POST" && path === "/admin/login") {
+      return handleLogin(request, env);
+    }
+    if (request.method === "POST" && path === "/admin/logout") {
+      return new Response(null, { status: 303, headers: { Location: "/admin/login", "Set-Cookie": clearSessionCookie() } });
     }
 
-    if (request.method === "GET" && url.pathname === "/api/leads") {
+    // --- admin (session required) ---
+    const isAdminPage = path === "/admin";
+    const isAdminApi = path.startsWith("/api/");
+    if (isAdminPage || isAdminApi) {
+      const authed = await isValidSession(request, env);
+      if (!authed) {
+        return isAdminPage
+          ? new Response(null, { status: 303, headers: { Location: "/admin/login" } })
+          : corsResponse(json({ error: "Unauthorized" }, 401));
+      }
+    }
+
+    if (request.method === "GET" && path === "/admin") {
+      return htmlResponse(adminPageHtml());
+    }
+    if (request.method === "GET" && path === "/api/leads") {
       return handleListLeads(env);
     }
-
-    var patchMatch = url.pathname.match(/^\/api\/leads\/(\d+)$/);
+    if (request.method === "GET" && path === "/api/leads/export") {
+      return handleExportCsv(env);
+    }
+    if (request.method === "GET" && path === "/api/stats") {
+      return handleStats(env);
+    }
+    const patchMatch = path.match(/^\/api\/leads\/(\d+)$/);
     if (request.method === "PATCH" && patchMatch) {
       return handleUpdateLead(request, env, Number(patchMatch[1]));
+    }
+    if (request.method === "POST" && path === "/api/admin/backup-now") {
+      return handleBackupNow(env);
     }
 
     return corsResponse(json({ error: "Not found" }, 404));
   },
+
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(runBackup(env));
+  },
 };
+
+// ---------- form submission ----------
 
 async function handleSubmit(request, env) {
   let form;
@@ -84,12 +123,18 @@ async function handleSubmit(request, env) {
   const submittedAt = new Date().toISOString();
 
   try {
+    let duplicateOfId = null;
+    const dup = await env.DB.prepare(
+      `SELECT id FROM leads WHERE email = ?1 OR (?2 != '' AND phone = ?2) ORDER BY submitted_at DESC LIMIT 1`
+    ).bind(email, phone).all();
+    if (dup.results && dup.results[0]) duplicateOfId = dup.results[0].id;
+
     await env.DB.prepare(
       `INSERT INTO leads
-        (submitted_at, name, first_name, last_name, email, phone, eircode, property_type, whatsapp_consent)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        (submitted_at, name, first_name, last_name, email, phone, eircode, property_type, whatsapp_consent, duplicate_of_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
-      .bind(submittedAt, name, firstName, lastName, email, phone, eircode, propertyType, whatsappConsent ? 1 : 0)
+      .bind(submittedAt, name, firstName, lastName, email, phone, eircode, propertyType, whatsappConsent ? 1 : 0, duplicateOfId)
       .run();
   } catch (err) {
     console.error("D1 insert failed:", err);
@@ -105,11 +150,101 @@ async function handleSubmit(request, env) {
   return corsResponse(json({ ok: true, emailSent: true }));
 }
 
+// ---------- admin auth ----------
+
+async function handleLogin(request, env) {
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+
+  if (await isRateLimited(env, ip)) {
+    return htmlResponse(loginPageHtml("Too many attempts. Try again in 15 minutes."), 429);
+  }
+
+  let form;
+  try {
+    form = await request.formData();
+  } catch (err) {
+    return htmlResponse(loginPageHtml("Something went wrong. Try again."), 400);
+  }
+
+  const username = str(form.get("username")).trim();
+  const password = str(form.get("password"));
+  const ok = username === "admin" && !!env.ADMIN_PASSWORD && timingSafeEqual(password, env.ADMIN_PASSWORD);
+
+  await recordAttempt(env, ip, ok);
+
+  if (!ok) {
+    return htmlResponse(loginPageHtml("Incorrect username or password."), 401);
+  }
+
+  const cookie = await createSessionCookie(env);
+  return new Response(null, { status: 303, headers: { Location: "/admin", "Set-Cookie": cookie } });
+}
+
+async function isRateLimited(env, ip) {
+  const since = new Date(Date.now() - RATE_LIMIT_WINDOW_MIN * 60000).toISOString();
+  const { results } = await env.DB.prepare(
+    `SELECT COUNT(*) as c FROM login_attempts WHERE ip = ? AND success = 0 AND attempted_at > ?`
+  ).bind(ip, since).all();
+  return (results[0] && results[0].c ? results[0].c : 0) >= RATE_LIMIT_MAX_ATTEMPTS;
+}
+
+async function recordAttempt(env, ip, success) {
+  try {
+    await env.DB.prepare(`INSERT INTO login_attempts (ip, attempted_at, success) VALUES (?, ?, ?)`)
+      .bind(ip, new Date().toISOString(), success ? 1 : 0)
+      .run();
+  } catch (err) {
+    console.error("Failed to record login attempt:", err);
+  }
+}
+
+function timingSafeEqual(a, b) {
+  const len = Math.max(a.length, b.length);
+  let mismatch = a.length === b.length ? 0 : 1;
+  for (let i = 0; i < len; i++) {
+    mismatch |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  }
+  return mismatch === 0;
+}
+
+async function hmac(secret, message) {
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
+  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function createSessionCookie(env) {
+  const expires = String(Date.now() + SESSION_MAX_AGE * 1000);
+  const sig = await hmac(env.SESSION_SECRET, expires);
+  return `session=${expires}.${sig}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${SESSION_MAX_AGE}`;
+}
+
+function clearSessionCookie() {
+  return `session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0`;
+}
+
+async function isValidSession(request, env) {
+  const cookieHeader = request.headers.get("Cookie") || "";
+  const match = cookieHeader.match(/(?:^|;\s*)session=([^;]+)/);
+  if (!match) return false;
+
+  const [expires, sig] = match[1].split(".");
+  if (!expires || !sig) return false;
+  if (Number(expires) < Date.now()) return false;
+
+  const expected = await hmac(env.SESSION_SECRET, expires);
+  return timingSafeEqual(sig, expected);
+}
+
+// ---------- leads API ----------
+
 async function handleListLeads(env) {
   try {
     const { results } = await env.DB.prepare(
       `SELECT id, submitted_at, name, first_name, last_name, email, phone, eircode,
-              property_type, whatsapp_consent, whatsapp_sent, status, difficulty, notes
+              property_type, whatsapp_consent, whatsapp_sent, status, difficulty, notes, duplicate_of_id
        FROM leads ORDER BY submitted_at DESC`
     ).all();
     return corsResponse(json({ leads: results }));
@@ -157,6 +292,82 @@ async function handleUpdateLead(request, env, id) {
     return corsResponse(json({ error: "Update failed" }, 500));
   }
 }
+
+async function handleExportCsv(env) {
+  try {
+    const { results } = await env.DB.prepare(`SELECT * FROM leads ORDER BY submitted_at DESC`).all();
+    const csv = leadsToCsv(results);
+    return new Response(csv, {
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="leads-export-${new Date().toISOString().slice(0, 10)}.csv"`,
+      },
+    });
+  } catch (err) {
+    console.error("CSV export failed:", err);
+    return corsResponse(json({ error: "Export failed" }, 500));
+  }
+}
+
+async function handleStats(env) {
+  try {
+    const propertyTypes = await env.DB.prepare(
+      `SELECT COALESCE(NULLIF(property_type,''),'Unknown') as label, COUNT(*) as count
+       FROM leads GROUP BY label ORDER BY count DESC`
+    ).all();
+    const areas = await env.DB.prepare(
+      `SELECT SUBSTR(UPPER(REPLACE(eircode,' ','')),1,3) as label, COUNT(*) as count
+       FROM leads WHERE eircode IS NOT NULL AND eircode != ''
+       GROUP BY label ORDER BY count DESC`
+    ).all();
+    return corsResponse(json({ propertyTypes: propertyTypes.results, areas: areas.results }));
+  } catch (err) {
+    console.error("Stats query failed:", err);
+    return corsResponse(json({ error: "Failed to load stats" }, 500));
+  }
+}
+
+async function handleBackupNow(env) {
+  try {
+    const key = await runBackup(env);
+    return corsResponse(json({ ok: true, key: key || null, note: key ? undefined : "R2 not configured yet" }));
+  } catch (err) {
+    console.error("Manual backup failed:", err);
+    return corsResponse(json({ error: "Backup failed" }, 500));
+  }
+}
+
+async function runBackup(env) {
+  if (!env.STORAGE) {
+    console.warn("Backup skipped: R2 binding (STORAGE) not configured yet.");
+    return null;
+  }
+  const { results } = await env.DB.prepare(`SELECT * FROM leads ORDER BY submitted_at DESC`).all();
+  const csv = leadsToCsv(results);
+  const key = `backups/leads-${new Date().toISOString().slice(0, 10)}.csv`;
+  await env.STORAGE.put(key, csv, { httpMetadata: { contentType: "text/csv" } });
+  return key;
+}
+
+function leadsToCsv(rows) {
+  const headers = [
+    "id", "submitted_at", "name", "first_name", "last_name", "email", "phone", "eircode",
+    "property_type", "whatsapp_consent", "whatsapp_sent", "status", "difficulty", "notes", "duplicate_of_id",
+  ];
+  const lines = [headers.join(",")];
+  for (const row of rows) {
+    lines.push(headers.map((h) => csvEscape(row[h])).join(","));
+  }
+  return lines.join("\r\n");
+}
+
+function csvEscape(value) {
+  if (value === null || value === undefined) return "";
+  const s = String(value);
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+// ---------- Turnstile / Resend (quote form) ----------
 
 async function verifyTurnstile(token, ip, secret) {
   if (!token || !secret) return false;
@@ -212,6 +423,8 @@ function emailTemplate({ firstName, eircode }) {
 </div>`.trim();
 }
 
+// ---------- small utils ----------
+
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (c) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
@@ -229,11 +442,55 @@ function json(obj, status = 200) {
   });
 }
 
+function htmlResponse(html, status = 200) {
+  return new Response(html, { status, headers: { "Content-Type": "text/html; charset=utf-8" } });
+}
+
 function corsResponse(response) {
   response.headers.set("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
   response.headers.set("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS");
   response.headers.set("Access-Control-Allow-Headers", "Content-Type");
   return response;
+}
+
+// ---------- pages ----------
+
+function loginPageHtml(error) {
+  return String.raw`<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in — Capital BER Solutions</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@700;800&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{ --bg:#F7F8F7; --surface:#FFFFFF; --border:#DEE3DF; --text:#16201B; --text-muted:#57635C; --accent:#0E6E55; --accent-soft:#E3F1EA; --error-bg:#F5E7E7; --error-fg:#A33D3D; }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#121613; --surface:#191F1B; --border:#2B332D; --text:#ECF1EC; --text-muted:#A3AEA6; --accent:#4FD3A6; --accent-soft:#1B3A2E; --error-bg:#3A2323; --error-fg:#E39A9A; }
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); color:var(--text); font-family:'Public Sans',sans-serif; }
+  .card{ width:100%; max-width:340px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:28px 26px; margin:20px; }
+  h1{ font-family:'Libre Franklin',sans-serif; font-size:1.2rem; margin:0 0 18px; }
+  label{ display:block; font-weight:600; font-size:0.85rem; margin-bottom:5px; }
+  input{ width:100%; padding:9px 11px; border:1.5px solid var(--border); border-radius:8px; background:var(--bg); color:var(--text); font-size:0.95rem; margin-bottom:14px; }
+  input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  button{ width:100%; padding:10px; border:none; border-radius:8px; background:var(--accent); color:#fff; font-weight:600; font-size:0.95rem; cursor:pointer; }
+  .error{ background:var(--error-bg); color:var(--error-fg); font-size:0.85rem; padding:8px 11px; border-radius:8px; margin-bottom:14px; }
+</style>
+</head>
+<body>
+  <form class="card" method="POST" action="/admin/login">
+    <h1>Capital BER Solutions</h1>
+    ${error ? `<div class="error">${escapeHtml(error)}</div>` : ""}
+    <label for="username">Username</label>
+    <input type="text" id="username" name="username" autocomplete="username" required>
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" autocomplete="current-password" required>
+    <button type="submit">Sign in</button>
+  </form>
+</body>
+</html>`;
 }
 
 function adminPageHtml() {
@@ -257,6 +514,7 @@ const ADMIN_HTML = String.raw`<!doctype html>
     --quoted-bg:#F1E7FA; --quoted-fg:#7A3FC4;
     --booked-bg:#E3F3E8; --booked-fg:#1B7A45;
     --lost-bg:#F5E7E7; --lost-fg:#A33D3D;
+    --warn-bg:#FBF0DD; --warn-fg:#9C6B0C;
   }
   @media (prefers-color-scheme: dark){
     :root{
@@ -268,6 +526,7 @@ const ADMIN_HTML = String.raw`<!doctype html>
       --quoted-bg:#2E2242; --quoted-fg:#C9A4F2;
       --booked-bg:#17301F; --booked-fg:#6FE39D;
       --lost-bg:#3A2323; --lost-fg:#E39A9A;
+      --warn-bg:#3A2E12; --warn-fg:#E8B65B;
     }
   }
   *{ box-sizing:border-box; }
@@ -279,7 +538,20 @@ const ADMIN_HTML = String.raw`<!doctype html>
 
   header.top{ display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:22px; }
   header.top h1{ font-size:1.5rem; font-weight:800; margin:0; }
+  .top-actions{ display:flex; align-items:center; gap:14px; }
   .stat-line{ font-family:'IBM Plex Mono',monospace; font-size:0.8rem; color:var(--text-muted); }
+  .logout-link{ font-size:0.8rem; color:var(--text-muted); text-decoration:none; }
+  .logout-link:hover{ color:var(--accent); }
+
+  .stats-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px; }
+  @media (max-width:640px){ .stats-grid{ grid-template-columns:1fr; } }
+  .stats-card{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px; }
+  .stats-card h2{ font-family:'Public Sans',sans-serif; font-size:0.72rem; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 12px; }
+  .bar-row{ display:flex; align-items:center; gap:10px; margin-bottom:7px; font-size:0.83rem; }
+  .bar-label{ width:70px; flex-shrink:0; color:var(--text-muted); text-transform:capitalize; }
+  .bar-track{ flex:1; height:7px; border-radius:99px; background:var(--surface-2); overflow:hidden; }
+  .bar-fill{ height:100%; background:var(--accent); border-radius:99px; }
+  .bar-count{ width:22px; text-align:right; font-family:'IBM Plex Mono',monospace; color:var(--text-muted); flex-shrink:0; }
 
   .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:18px; }
   .toolbar input[type=search]{
@@ -291,6 +563,11 @@ const ADMIN_HTML = String.raw`<!doctype html>
     background:var(--surface); color:var(--text); font-family:'Public Sans',sans-serif; font-size:0.88rem;
   }
   .toolbar input:focus, .toolbar select:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  .csv-link{
+    margin-left:auto; font-size:0.83rem; font-weight:600; color:var(--accent); text-decoration:none;
+    border:1.5px solid var(--accent); padding:8px 14px; border-radius:8px;
+  }
+  .csv-link:hover{ background:var(--accent-soft); }
 
   .table-card{ background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
   table{ width:100%; border-collapse:collapse; font-size:0.87rem; }
@@ -304,6 +581,10 @@ const ADMIN_HTML = String.raw`<!doctype html>
 
   .name-cell strong{ display:block; font-weight:600; }
   .name-cell .sub{ color:var(--text-muted); font-size:0.8rem; }
+  .dup-chip{
+    display:inline-flex; align-items:center; gap:4px; font-size:0.72rem; font-weight:600;
+    color:var(--warn-fg); background:var(--warn-bg); padding:2px 7px; border-radius:99px; margin-top:4px;
+  }
   .contact-cell a{ color:var(--text); text-decoration:none; display:block; }
   .contact-cell a:hover{ color:var(--accent); }
   .wa-chip{
@@ -333,11 +614,6 @@ const ADMIN_HTML = String.raw`<!doctype html>
 
   .empty-state{ padding:50px 20px; text-align:center; color:var(--text-muted); }
 
-  .banner{
-    background:var(--contacted-bg); color:var(--contacted-fg); font-size:0.82rem; font-weight:600;
-    padding:9px 14px; border-radius:8px; margin-bottom:16px;
-  }
-
   @media (max-width: 760px){
     .table-card{ border:none; background:transparent; }
     thead{ display:none; }
@@ -352,10 +628,22 @@ const ADMIN_HTML = String.raw`<!doctype html>
 <div class="wrap">
   <header class="top">
     <h1>Leads</h1>
-    <span class="stat-line" id="stat-line">Loading…</span>
+    <div class="top-actions">
+      <span class="stat-line" id="stat-line">Loading…</span>
+      <a class="logout-link" href="/admin/logout" id="logout-link">Sign out</a>
+    </div>
   </header>
 
-  <div class="banner">Preview build — seeded with example data, no login gate yet. Don't point this URL at anyone until auth is added.</div>
+  <div class="stats-grid">
+    <div class="stats-card">
+      <h2>Property type</h2>
+      <div id="stats-property"></div>
+    </div>
+    <div class="stats-card">
+      <h2>Area (Eircode routing key)</h2>
+      <div id="stats-area"></div>
+    </div>
+  </div>
 
   <div class="toolbar">
     <input type="search" id="search" placeholder="Search name, email, Eircode…">
@@ -367,6 +655,7 @@ const ADMIN_HTML = String.raw`<!doctype html>
       <option>Booked</option>
       <option>Lost</option>
     </select>
+    <a class="csv-link" href="/api/leads/export">Download CSV</a>
   </div>
 
   <div class="table-card">
@@ -393,12 +682,18 @@ const ADMIN_HTML = String.raw`<!doctype html>
   var STATUSES = ["New","Contacted","Quoted","Booked","Lost"];
   var DIFFICULTIES = ["","Easy","Medium","Hard"];
   var allLeads = [];
+  var leadsById = {};
 
   var rowsEl = document.getElementById('rows');
   var emptyEl = document.getElementById('empty');
   var statLine = document.getElementById('stat-line');
   var searchEl = document.getElementById('search');
   var statusFilterEl = document.getElementById('status-filter');
+
+  document.getElementById('logout-link').addEventListener('click', function(e){
+    e.preventDefault();
+    fetch('/admin/logout', { method: 'POST' }).finally(function(){ window.location.href = '/admin/login'; });
+  });
 
   function fmtDate(iso){
     try {
@@ -412,6 +707,18 @@ const ADMIN_HTML = String.raw`<!doctype html>
     return list.map(function(v){
       var label = v === "" ? "—" : v;
       return '<option value="' + v + '"' + (v === current ? ' selected' : '') + '>' + label + '</option>';
+    }).join('');
+  }
+
+  function renderBars(containerId, items){
+    var el = document.getElementById(containerId);
+    if (!items || items.length === 0) { el.innerHTML = '<div style="color:var(--text-muted);font-size:0.83rem;">No data yet</div>'; return; }
+    var max = Math.max.apply(null, items.map(function(i){ return i.count; }));
+    el.innerHTML = items.map(function(i){
+      var pct = max ? Math.round((i.count / max) * 100) : 0;
+      return '<div class="bar-row"><span class="bar-label">' + escapeHtml(i.label) + '</span>' +
+        '<span class="bar-track"><span class="bar-fill" style="width:' + pct + '%"></span></span>' +
+        '<span class="bar-count">' + i.count + '</span></div>';
     }).join('');
   }
 
@@ -436,10 +743,16 @@ const ADMIN_HTML = String.raw`<!doctype html>
       var tr = document.createElement('tr');
 
       var waChip = lead.whatsapp_consent ? '<span class="wa-chip">WhatsApp OK</span>' : '';
+      var dupChip = '';
+      if (lead.duplicate_of_id && leadsById[lead.duplicate_of_id]) {
+        dupChip = '<span class="dup-chip">⚠ Duplicate of ' + escapeHtml(leadsById[lead.duplicate_of_id].name) + '</span>';
+      } else if (lead.duplicate_of_id) {
+        dupChip = '<span class="dup-chip">⚠ Possible duplicate (#' + lead.duplicate_of_id + ')</span>';
+      }
 
       tr.innerHTML =
         '<td data-label="Name" class="name-cell"><strong>' + escapeHtml(lead.name) + '</strong>' +
-          '<span class="sub">' + escapeHtml(lead.property_type || '') + '</span></td>' +
+          '<span class="sub">' + escapeHtml(lead.property_type || '') + '</span>' + dupChip + '</td>' +
         '<td data-label="Contact" class="contact-cell">' +
           '<a href="mailto:' + escapeHtml(lead.email) + '">' + escapeHtml(lead.email) + '</a>' +
           (lead.phone ? '<a href="tel:' + escapeHtml(lead.phone) + '">' + escapeHtml(lead.phone) + '</a>' : '') +
@@ -503,15 +816,19 @@ const ADMIN_HTML = String.raw`<!doctype html>
   searchEl.addEventListener('input', render);
   statusFilterEl.addEventListener('change', render);
 
-  fetch('/api/leads')
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-      allLeads = data.leads || [];
-      render();
-    })
-    .catch(function(){
-      statLine.textContent = 'Failed to load leads';
-    });
+  Promise.all([
+    fetch('/api/leads').then(function(r){ return r.json(); }),
+    fetch('/api/stats').then(function(r){ return r.json(); })
+  ]).then(function(results){
+    var leadsData = results[0], statsData = results[1];
+    allLeads = leadsData.leads || [];
+    allLeads.forEach(function(l){ leadsById[l.id] = l; });
+    render();
+    renderBars('stats-property', statsData.propertyTypes);
+    renderBars('stats-area', statsData.areas);
+  }).catch(function(){
+    statLine.textContent = 'Failed to load leads';
+  });
 })();
 </script>
 </body>

@@ -1,0 +1,8 @@
+ALTER TABLE leads ADD COLUMN duplicate_of_id INTEGER;
+
+CREATE TABLE IF NOT EXISTS login_attempts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ip TEXT NOT NULL,
+  attempted_at TEXT NOT NULL,
+  success INTEGER NOT NULL DEFAULT 0
+);

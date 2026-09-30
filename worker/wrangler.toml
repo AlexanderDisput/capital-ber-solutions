@@ -9,6 +9,16 @@ binding = "DB"
 database_name = "capitalber-leads"
 database_id = "27b5ed18-6061-4af0-b5ba-28aad0568bab"
 
+[[r2_buckets]]
+binding = "STORAGE"
+bucket_name = "capitalber-storage"
+
+# Monthly backup of the leads table to R2, 1st of the month at 03:00 UTC.
+[triggers]
+crons = ["0 3 1 * *"]
+
 # Secrets (never stored here) — set with:
 #   npx wrangler secret put RESEND_API_KEY
 #   npx wrangler secret put TURNSTILE_SECRET_KEY
+#   npx wrangler secret put SESSION_SECRET
+#   npx wrangler secret put ADMIN_PASSWORD

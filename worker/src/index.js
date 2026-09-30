@@ -122,6 +122,7 @@ async function handleSubmit(request, env) {
   const name = [firstName, lastName].filter(Boolean).join(" ");
   const submittedAt = new Date().toISOString();
 
+  let leadId = null;
   try {
     let duplicateOfId = null;
     const dup = await env.DB.prepare(
@@ -129,25 +130,39 @@ async function handleSubmit(request, env) {
     ).bind(email, phone).all();
     if (dup.results && dup.results[0]) duplicateOfId = dup.results[0].id;
 
-    await env.DB.prepare(
+    const insertResult = await env.DB.prepare(
       `INSERT INTO leads
         (submitted_at, name, first_name, last_name, email, phone, eircode, property_type, whatsapp_consent, duplicate_of_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(submittedAt, name, firstName, lastName, email, phone, eircode, propertyType, whatsappConsent ? 1 : 0, duplicateOfId)
       .run();
+    leadId = insertResult.meta ? insertResult.meta.last_row_id : null;
   } catch (err) {
     console.error("D1 insert failed:", err);
   }
 
+  let emailSent = false;
   try {
     await sendAutoresponder(env.RESEND_API_KEY, { firstName, email, eircode });
+    emailSent = true;
   } catch (err) {
     console.error("Resend send failed:", err);
-    return corsResponse(json({ ok: true, emailSent: false }));
   }
 
-  return corsResponse(json({ ok: true, emailSent: true }));
+  let whatsappSent = false;
+  if (whatsappConsent && phone) {
+    try {
+      whatsappSent = await sendWhatsAppTemplate(env, { phone, firstName, eircode });
+      if (whatsappSent && leadId) {
+        await env.DB.prepare(`UPDATE leads SET whatsapp_sent = 1 WHERE id = ?`).bind(leadId).run();
+      }
+    } catch (err) {
+      console.error("WhatsApp send failed:", err);
+    }
+  }
+
+  return corsResponse(json({ ok: true, emailSent, whatsappSent }));
 }
 
 // ---------- admin auth ----------
@@ -403,6 +418,68 @@ async function sendAutoresponder(apiKey, { firstName, email, eircode }) {
   if (!res.ok) {
     throw new Error(`Resend ${res.status}: ${await res.text()}`);
   }
+}
+
+// WhatsApp send is a no-op until WHATSAPP_ACCESS_TOKEN / WHATSAPP_PHONE_NUMBER_ID
+// are set (once the "ber_quote_followup" template is approved by Meta).
+async function sendWhatsAppTemplate(env, { phone, firstName, eircode }) {
+  if (!env.WHATSAPP_ACCESS_TOKEN || !env.WHATSAPP_PHONE_NUMBER_ID) return false;
+
+  const to = normalizePhone(phone);
+  if (!to) return false;
+
+  const res = await fetch(
+    `https://graph.facebook.com/v21.0/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.WHATSAPP_ACCESS_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to,
+        type: "template",
+        template: {
+          name: "ber_quote_followup",
+          language: { code: "en_GB" },
+          components: [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: firstName || "there" },
+                { type: "text", text: eircode || "your property" },
+              ],
+            },
+          ],
+        },
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    console.error("WhatsApp API error:", res.status, await res.text());
+    return false;
+  }
+  return true;
+}
+
+// Best-effort normalization of Irish numbers to E.164 (+353...).
+// Returns null rather than guessing when the input isn't confidently parseable.
+function normalizePhone(raw) {
+  let digits = str(raw).replace(/[^\d+]/g, "");
+  if (digits.startsWith("+")) {
+    // already has a country code
+  } else if (digits.startsWith("00")) {
+    digits = "+" + digits.slice(2);
+  } else if (digits.startsWith("0")) {
+    digits = "+353" + digits.slice(1);
+  } else if (digits.startsWith("353")) {
+    digits = "+" + digits;
+  } else {
+    return null;
+  }
+  return /^\+\d{8,15}$/.test(digits) ? digits : null;
 }
 
 function emailTemplate({ firstName, eircode }) {

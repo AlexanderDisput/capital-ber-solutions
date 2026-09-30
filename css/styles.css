@@ -441,16 +441,52 @@ p { margin: 0 0 1em; color: var(--color-text-muted); }
 
 .field-optional { font-weight: 400; color: var(--color-text-muted); font-size: 0.82rem; }
 
-.field-consent {
+.consent-card {
   display: flex;
   align-items: flex-start;
-  gap: 0.6rem;
-  margin-top: 1.1rem;
-  font-size: 0.88rem;
-  color: var(--color-text-muted);
+  gap: 0.9rem;
+  margin-top: 1.3rem;
+  padding: 1rem 1.1rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
   cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
-.field-consent input { margin-top: 0.2rem; }
+.consent-card:hover { border-color: var(--color-emerald); }
+.consent-card:has(.consent-input:checked) { border-color: var(--color-emerald); background: var(--color-soft); }
+
+.consent-input {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0, 0, 0, 0);
+  white-space: nowrap; border: 0;
+}
+
+.consent-box {
+  flex-shrink: 0;
+  width: 28px; height: 28px;
+  margin-top: 0.1rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.consent-input:checked ~ .consent-box { background: var(--color-emerald); border-color: var(--color-emerald); }
+.consent-input:focus-visible ~ .consent-box { outline: 2px solid var(--color-emerald); outline-offset: 2px; }
+
+.consent-tick {
+  width: 15px; height: 12px;
+  fill: none; stroke: var(--color-white); stroke-width: 2.2;
+  stroke-linecap: round; stroke-linejoin: round;
+  opacity: 0; transition: opacity 0.1s ease;
+}
+.consent-input:checked ~ .consent-box .consent-tick { opacity: 1; }
+
+.consent-body { display: flex; align-items: flex-start; gap: 0.7rem; }
+.consent-wa-icon { width: 26px; height: 26px; fill: #25D366; flex-shrink: 0; margin-top: 0.1rem; }
+.consent-body strong { display: block; font-size: 1rem; color: var(--color-text); }
+.consent-body small { display: block; font-size: 0.85rem; color: var(--color-text-muted); margin-top: 0.2rem; line-height: 1.45; }
 
 .cf-turnstile { margin-top: 0.9rem; }
 

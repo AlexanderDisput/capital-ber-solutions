@@ -1,0 +1,14 @@
+name = "capitalber-leads"
+main = "src/index.js"
+compatibility_date = "2026-09-29"
+
+# Created with: npx wrangler d1 create capitalber-leads
+# Paste the database_id it prints below once created.
+[[d1_databases]]
+binding = "DB"
+database_name = "capitalber-leads"
+database_id = "27b5ed18-6061-4af0-b5ba-28aad0568bab"
+
+# Secrets (never stored here) — set with:
+#   npx wrangler secret put RESEND_API_KEY
+#   npx wrangler secret put TURNSTILE_SECRET_KEY

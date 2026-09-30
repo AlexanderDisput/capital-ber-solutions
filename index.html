@@ -219,8 +219,12 @@
           <p class="calc-inline-error" id="quote-error" hidden>Something went wrong sending your enquiry &mdash; please call us directly, or try again in a moment.</p>
           <div class="form-grid">
             <div class="field">
-              <label for="quote-name">Full Name</label>
-              <input type="text" id="quote-name" name="name" autocomplete="name" required>
+              <label for="quote-first-name">First Name</label>
+              <input type="text" id="quote-first-name" name="first_name" autocomplete="given-name" required>
+            </div>
+            <div class="field">
+              <label for="quote-last-name">Last Name</label>
+              <input type="text" id="quote-last-name" name="last_name" autocomplete="family-name" required>
             </div>
             <div class="field">
               <label for="quote-email">Email Address</label>
@@ -245,6 +249,11 @@
               </select>
             </div>
           </div>
+          <label class="field-consent">
+            <input type="checkbox" id="quote-whatsapp-consent" name="whatsapp_consent">
+            I agree to be contacted about this enquiry via WhatsApp
+          </label>
+          <div class="cf-turnstile" data-sitekey="0x4AAAAAAFKLvkpmUVcp9CtT"></div>
           <button class="btn btn-conversion" type="submit">Request My Quote</button>
         </form>
       </div>
@@ -318,6 +327,7 @@
   </div>
 </footer>
 
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script src="js/consent.js"></script>
 <script src="js/main.js"></script>
 </body>

@@ -6,6 +6,11 @@
 (function () {
   window.dataLayer = window.dataLayer || [];
 
+  // Lead-intake worker: logs the enquiry to the dashboard and sends the
+  // instant customer autoresponder. Fired alongside Web3Forms, never
+  // gating the visible success/error state on its result.
+  var LEADS_WORKER_URL = 'https://capitalber-leads.capitalber.workers.dev/submit';
+
   function pushEvent(eventName, extra) {
     window.dataLayer.push(Object.assign({ event: eventName }, extra || {}));
   }
@@ -73,10 +78,15 @@
           ? setTimeout(function () { timeoutController.abort(); }, 15000)
           : null;
 
+        var formData = new FormData(quoteForm);
+
+        // Fire-and-forget: never blocks or affects the visible form state.
+        fetch(LEADS_WORKER_URL, { method: 'POST', body: formData }).catch(function () {});
+
         fetch(quoteForm.action, {
           method: 'POST',
           headers: { 'Accept': 'application/json' },
-          body: new FormData(quoteForm),
+          body: formData,
           signal: timeoutController ? timeoutController.signal : undefined
         })
           .then(function (response) {

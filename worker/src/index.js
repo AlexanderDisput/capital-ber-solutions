@@ -422,7 +422,7 @@ async function sendAutoresponder(apiKey, { firstName, email, eircode }) {
 
 // WhatsApp send is a no-op until WHATSAPP_ACCESS_TOKEN / WHATSAPP_PHONE_NUMBER_ID
 // are set (once the "ber_quote_followup" template is approved by Meta).
-async function sendWhatsAppTemplate(env, { phone, firstName, eircode }) {
+async function sendWhatsAppTemplate(env, { phone, firstName }) {
   if (!env.WHATSAPP_ACCESS_TOKEN || !env.WHATSAPP_PHONE_NUMBER_ID) return false;
 
   const to = normalizePhone(phone);
@@ -448,7 +448,6 @@ async function sendWhatsAppTemplate(env, { phone, firstName, eircode }) {
               type: "body",
               parameters: [
                 { type: "text", text: firstName || "there" },
-                { type: "text", text: eircode || "your property" },
               ],
             },
           ],
@@ -482,21 +481,15 @@ function normalizePhone(raw) {
   return /^\+\d{8,15}$/.test(digits) ? digits : null;
 }
 
-function emailTemplate({ firstName, eircode }) {
+function emailTemplate({ firstName }) {
   const greeting = escapeHtml(firstName || "there");
-  const forProperty = eircode ? ` for ${escapeHtml(eircode)}` : "";
   return `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#16201B;line-height:1.5;">
   <p>Hi ${greeting},</p>
-  <p>Thanks for your BER enquiry${forProperty}! To get you an accurate quote as quickly as possible, could you let us know a little more:</p>
-  <ul>
-    <li>Approximate property size / number of bedrooms</li>
-    <li>Any extensions or major energy upgrades (insulation, windows, heating, solar, etc.)</li>
-    <li>Is this BER for a <strong>sale</strong>, <strong>mortgage</strong>, <strong>rental</strong>, or an <strong>SEAI grant</strong>?</li>
-  </ul>
-  <p>If you have a previous BER certificate, feel free to send that along too — useful, but not essential.</p>
-  <p>We'll be in touch shortly. If anything's urgent in the meantime, just reply to this email.</p>
-  <p>Thanks,<br>Capital BER Solutions</p>
+  <p>Thanks for your enquiry. To give you an accurate quote, could you let me know the approximate floor area in square metres and the number of bedrooms? Please also let me know if there's an extension or attic conversion, and whether any major upgrades have been carried out.</p>
+  <p>Is the BER needed for a sale, mortgage, grant support or another purpose?</p>
+  <p>Once I have those details, I'll send you a price and availability.</p>
+  <p>Kind regards,<br>Luke Murray</p>
 </div>`.trim();
 }
 

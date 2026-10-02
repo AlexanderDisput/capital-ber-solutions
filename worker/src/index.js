@@ -482,8 +482,8 @@ async function sendAutoresponder(apiKey, { firstName, email, eircode }) {
       bcc: [OWNER_NOTIFICATION_EMAIL],
       reply_to: OWNER_NOTIFICATION_EMAIL,
       subject: "Thanks for your BER enquiry — a couple of quick details",
-      html: emailTemplate(),
-      text: emailTemplateText(),
+      html: emailTemplate({ firstName }),
+      text: emailTemplateText({ firstName }),
     }),
   });
 
@@ -545,10 +545,11 @@ function normalizePhone(raw) {
   return /^\+\d{8,15}$/.test(digits) ? digits : null;
 }
 
-function emailTemplate() {
+function emailTemplate({ firstName }) {
+  const greeting = escapeHtml(firstName || "there");
   return `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#16201B;line-height:1.5;">
-  <p>Hi,</p>
+  <p>Hi ${greeting},</p>
   <p>Thanks for your enquiry. To give you an accurate quote, could you let me know the approximate floor area in square metres and the number of bedrooms? Please also let me know if there's an extension or attic conversion, and whether any major upgrades have been carried out.</p>
   <p>Is the BER needed for a sale, mortgage, grant support or another purpose?</p>
   <p>Once I have those details, I'll send you a price and availability.</p>
@@ -556,9 +557,9 @@ function emailTemplate() {
 </div>`.trim();
 }
 
-function emailTemplateText() {
+function emailTemplateText({ firstName }) {
   return [
-    "Hi,",
+    `Hi ${firstName || "there"},`,
     "",
     "Thanks for your enquiry. To give you an accurate quote, could you let me know the approximate floor area in square metres and the number of bedrooms? Please also let me know if there's an extension or attic conversion, and whether any major upgrades have been carried out.",
     "",

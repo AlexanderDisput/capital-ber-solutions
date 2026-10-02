@@ -142,6 +142,14 @@ async function handleSubmit(request, env) {
     console.error("D1 insert failed:", err);
   }
 
+  try {
+    await sendOwnerNotification(env.RESEND_API_KEY, {
+      name, email, phone, eircode, propertyType, whatsappConsent, submittedAt,
+    });
+  } catch (err) {
+    console.error("Owner notification failed:", err);
+  }
+
   let emailSent = false;
   try {
     await sendAutoresponder(env.RESEND_API_KEY, { firstName, email, eircode });
@@ -396,6 +404,52 @@ async function verifyTurnstile(token, ip, secret) {
   });
   const outcome = await res.json();
   return outcome.success === true;
+}
+
+const OWNER_NOTIFICATION_EMAIL = "info@capitalbersolutions.ie";
+
+async function sendOwnerNotification(apiKey, lead) {
+  if (!apiKey) throw new Error("RESEND_API_KEY not set");
+
+  const rows = [
+    ["Name", lead.name],
+    ["Email", lead.email],
+    ["Phone", lead.phone || "—"],
+    ["Eircode", lead.eircode || "—"],
+    ["Property type", lead.propertyType || "—"],
+    ["WhatsApp consent", lead.whatsappConsent ? "Yes" : "No"],
+    ["Submitted", lead.submittedAt],
+  ]
+    .map(
+      ([label, value]) =>
+        `<tr><td style="padding:4px 10px 4px 0;color:#57635C;">${escapeHtml(label)}</td><td style="padding:4px 0;font-weight:600;">${escapeHtml(value)}</td></tr>`
+    )
+    .join("");
+
+  const html = `
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#16201B;line-height:1.5;">
+  <p>New BER enquiry from the website:</p>
+  <table cellpadding="0" cellspacing="0">${rows}</table>
+  <p style="margin-top:16px;"><a href="https://capitalber-leads.capitalber.workers.dev/admin">View in dashboard</a></p>
+</div>`.trim();
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: "Capital BER Solutions <quotes@capitalbersolutions.ie>",
+      to: [OWNER_NOTIFICATION_EMAIL],
+      subject: `New BER Enquiry — ${lead.name}`,
+      html,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Resend ${res.status}: ${await res.text()}`);
+  }
 }
 
 async function sendAutoresponder(apiKey, { firstName, email, eircode }) {

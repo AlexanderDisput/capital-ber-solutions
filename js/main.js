@@ -6,9 +6,9 @@
 (function () {
   window.dataLayer = window.dataLayer || [];
 
-  // Lead-intake worker: logs the enquiry to the dashboard and sends the
-  // instant customer autoresponder. Fired alongside Web3Forms, never
-  // gating the visible success/error state on its result.
+  // Lead-intake worker: the sole backend for the quote form. Verifies
+  // Turnstile, logs the enquiry to the dashboard, and sends the owner
+  // notification + customer autoresponder emails via Resend.
   var LEADS_WORKER_URL = 'https://capitalber-leads.capitalber.workers.dev/submit';
 
   function pushEvent(eventName, extra) {
@@ -52,10 +52,10 @@
       });
     }
 
-    // Quote form: submitted via fetch() to Web3Forms so the visitor sees an
-    // inline confirmation on our own page. The form still has a real
-    // action/method, so it degrades to a normal POST (redirecting per the
-    // "redirect" hidden field) if JavaScript fails to run.
+    // Quote form: submitted via fetch() to our own Worker so the visitor
+    // sees an inline confirmation on our own page. Requires JavaScript —
+    // the Turnstile bot-check it depends on does too, so there's no
+    // meaningful no-JS fallback to preserve here.
     var quoteForm = document.getElementById('quote-enquiry-form');
     if (quoteForm) {
       var quoteSuccess = document.getElementById('quote-success');
@@ -80,12 +80,8 @@
 
         var formData = new FormData(quoteForm);
 
-        // Fire-and-forget: never blocks or affects the visible form state.
-        fetch(LEADS_WORKER_URL, { method: 'POST', body: formData }).catch(function () {});
-
-        fetch(quoteForm.action, {
+        fetch(LEADS_WORKER_URL, {
           method: 'POST',
-          headers: { 'Accept': 'application/json' },
           body: formData,
           signal: timeoutController ? timeoutController.signal : undefined
         })

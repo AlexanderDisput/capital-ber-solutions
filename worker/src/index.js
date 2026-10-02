@@ -464,6 +464,7 @@ async function sendAutoresponder(apiKey, { firstName, email, eircode }) {
     body: JSON.stringify({
       from: "Capital BER Solutions <quotes@capitalbersolutions.ie>",
       to: [email],
+      bcc: [OWNER_NOTIFICATION_EMAIL],
       subject: "Thanks for your BER enquiry — a couple of quick details",
       html: emailTemplate(),
     }),

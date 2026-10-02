@@ -71,9 +71,12 @@ export default {
     if (request.method === "GET" && path === "/api/stats") {
       return handleStats(env);
     }
-    const patchMatch = path.match(/^\/api\/leads\/(\d+)$/);
-    if (request.method === "PATCH" && patchMatch) {
-      return handleUpdateLead(request, env, Number(patchMatch[1]));
+    const leadIdMatch = path.match(/^\/api\/leads\/(\d+)$/);
+    if (request.method === "PATCH" && leadIdMatch) {
+      return handleUpdateLead(request, env, Number(leadIdMatch[1]));
+    }
+    if (request.method === "DELETE" && leadIdMatch) {
+      return handleDeleteLead(env, Number(leadIdMatch[1]));
     }
     if (request.method === "POST" && path === "/api/admin/backup-now") {
       return handleBackupNow(env);
@@ -313,6 +316,17 @@ async function handleUpdateLead(request, env, id) {
   } catch (err) {
     console.error("D1 update failed:", err);
     return corsResponse(json({ error: "Update failed" }, 500));
+  }
+}
+
+async function handleDeleteLead(env, id) {
+  try {
+    await env.DB.prepare(`DELETE FROM lead_files WHERE lead_id = ?`).bind(id).run();
+    await env.DB.prepare(`DELETE FROM leads WHERE id = ?`).bind(id).run();
+    return corsResponse(json({ ok: true }));
+  } catch (err) {
+    console.error("D1 delete failed:", err);
+    return corsResponse(json({ error: "Delete failed" }, 500));
   }
 }
 
@@ -596,7 +610,7 @@ function htmlResponse(html, status = 200) {
 
 function corsResponse(response) {
   response.headers.set("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
-  response.headers.set("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS");
+  response.headers.set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
   response.headers.set("Access-Control-Allow-Headers", "Content-Type");
   return response;
 }
@@ -760,6 +774,15 @@ const ADMIN_HTML = String.raw`<!doctype html>
 
   .date-cell{ font-family:'IBM Plex Mono',monospace; font-size:0.78rem; color:var(--text-muted); white-space:nowrap; }
 
+  .delete-btn{
+    font-family:'Public Sans',sans-serif; font-weight:600; font-size:0.76rem; white-space:nowrap;
+    border:1px solid var(--border); background:transparent; color:var(--text-muted);
+    padding:5px 10px; border-radius:7px; cursor:pointer; transition:all .12s ease;
+  }
+  .delete-btn:hover{ border-color:var(--lost-fg); color:var(--lost-fg); }
+  .delete-btn.confirming{ background:var(--lost-bg); border-color:var(--lost-fg); color:var(--lost-fg); }
+  .delete-btn:disabled{ opacity:0.6; cursor:default; }
+
   .empty-state{ padding:50px 20px; text-align:center; color:var(--text-muted); }
 
   @media (max-width: 760px){
@@ -817,6 +840,7 @@ const ADMIN_HTML = String.raw`<!doctype html>
           <th>Difficulty</th>
           <th>Notes</th>
           <th>Submitted</th>
+          <th></th>
         </tr>
       </thead>
       <tbody id="rows"></tbody>
@@ -910,7 +934,8 @@ const ADMIN_HTML = String.raw`<!doctype html>
         '<td data-label="Status"></td>' +
         '<td data-label="Difficulty"></td>' +
         '<td data-label="Notes"></td>' +
-        '<td data-label="Submitted" class="date-cell">' + fmtDate(lead.submitted_at) + '</td>';
+        '<td data-label="Submitted" class="date-cell">' + fmtDate(lead.submitted_at) + '</td>' +
+        '<td data-label=""></td>';
 
       var statusSelect = document.createElement('select');
       statusSelect.className = 'status-select';
@@ -942,6 +967,39 @@ const ADMIN_HTML = String.raw`<!doctype html>
         patchLead(lead.id, { notes: notesInput.value });
       });
       tr.children[5].appendChild(notesInput);
+
+      var deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.className = 'delete-btn';
+      deleteBtn.textContent = 'Delete';
+      var confirmTimeout = null;
+      deleteBtn.addEventListener('click', function(){
+        if (deleteBtn.classList.contains('confirming')) {
+          clearTimeout(confirmTimeout);
+          deleteBtn.disabled = true;
+          deleteBtn.textContent = 'Deleting…';
+          fetch('/api/leads/' + lead.id, { method: 'DELETE' })
+            .then(function(r){
+              if (!r.ok) throw new Error('Delete failed');
+              allLeads = allLeads.filter(function(l){ return l.id !== lead.id; });
+              delete leadsById[lead.id];
+              render();
+            })
+            .catch(function(){
+              deleteBtn.disabled = false;
+              deleteBtn.textContent = 'Delete';
+              deleteBtn.classList.remove('confirming');
+            });
+        } else {
+          deleteBtn.classList.add('confirming');
+          deleteBtn.textContent = 'Confirm delete?';
+          confirmTimeout = setTimeout(function(){
+            deleteBtn.classList.remove('confirming');
+            deleteBtn.textContent = 'Delete';
+          }, 4000);
+        }
+      });
+      tr.children[7].appendChild(deleteBtn);
 
       rowsEl.appendChild(tr);
     });

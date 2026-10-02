@@ -433,6 +433,20 @@ async function sendOwnerNotification(apiKey, lead) {
   <p style="margin-top:16px;"><a href="https://capitalber-leads.capitalber.workers.dev/admin">View in dashboard</a></p>
 </div>`.trim();
 
+  const text = [
+    "New BER enquiry from the website:",
+    "",
+    `Name: ${lead.name}`,
+    `Email: ${lead.email}`,
+    `Phone: ${lead.phone || "—"}`,
+    `Eircode: ${lead.eircode || "—"}`,
+    `Property type: ${lead.propertyType || "—"}`,
+    `WhatsApp consent: ${lead.whatsappConsent ? "Yes" : "No"}`,
+    `Submitted: ${lead.submittedAt}`,
+    "",
+    "View in dashboard: https://capitalber-leads.capitalber.workers.dev/admin",
+  ].join("\n");
+
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -444,6 +458,7 @@ async function sendOwnerNotification(apiKey, lead) {
       to: [OWNER_NOTIFICATION_EMAIL],
       subject: `New BER Enquiry — ${lead.name}`,
       html,
+      text,
     }),
   });
 
@@ -465,8 +480,10 @@ async function sendAutoresponder(apiKey, { firstName, email, eircode }) {
       from: "Capital BER Solutions <quotes@capitalbersolutions.ie>",
       to: [email],
       bcc: [OWNER_NOTIFICATION_EMAIL],
+      reply_to: OWNER_NOTIFICATION_EMAIL,
       subject: "Thanks for your BER enquiry — a couple of quick details",
       html: emailTemplate(),
+      text: emailTemplateText(),
     }),
   });
 
@@ -537,6 +554,21 @@ function emailTemplate() {
   <p>Once I have those details, I'll send you a price and availability.</p>
   <p>Kind regards,<br>Luke Murray</p>
 </div>`.trim();
+}
+
+function emailTemplateText() {
+  return [
+    "Hi,",
+    "",
+    "Thanks for your enquiry. To give you an accurate quote, could you let me know the approximate floor area in square metres and the number of bedrooms? Please also let me know if there's an extension or attic conversion, and whether any major upgrades have been carried out.",
+    "",
+    "Is the BER needed for a sale, mortgage, grant support or another purpose?",
+    "",
+    "Once I have those details, I'll send you a price and availability.",
+    "",
+    "Kind regards,",
+    "Luke Murray",
+  ].join("\n");
 }
 
 // ---------- small utils ----------

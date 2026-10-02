@@ -454,7 +454,7 @@ async function sendOwnerNotification(apiKey, lead) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "Capital BER Solutions <quotes@capitalbersolutions.ie>",
+      from: "Capital BER Solutions <info@capitalbersolutions.ie>",
       to: [OWNER_NOTIFICATION_EMAIL],
       subject: `New BER Enquiry — ${lead.name}`,
       html,
@@ -477,10 +477,9 @@ async function sendAutoresponder(apiKey, { firstName, email, eircode }) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "Capital BER Solutions <quotes@capitalbersolutions.ie>",
+      from: "Capital BER Solutions <info@capitalbersolutions.ie>",
       to: [email],
       bcc: [OWNER_NOTIFICATION_EMAIL],
-      reply_to: OWNER_NOTIFICATION_EMAIL,
       subject: "Thanks for your BER enquiry — a couple of quick details",
       html: emailTemplate({ firstName }),
       text: emailTemplateText({ firstName }),

@@ -117,6 +117,8 @@ async function handleSubmit(request, env) {
   const eircode = str(form.get("eircode")).trim();
   const propertyType = str(form.get("property_type")).trim();
   const whatsappConsent = form.get("whatsapp_consent") === "on";
+  const heardAboutRaw = str(form.get("heard_about")).trim();
+  const heardAbout = HEARD_ABOUT_OPTIONS.includes(heardAboutRaw) ? heardAboutRaw : "";
 
   if (!firstName || !email) {
     return corsResponse(json({ error: "Missing required fields" }, 400));
@@ -135,10 +137,10 @@ async function handleSubmit(request, env) {
 
     const insertResult = await env.DB.prepare(
       `INSERT INTO leads
-        (submitted_at, name, first_name, last_name, email, phone, eircode, property_type, whatsapp_consent, duplicate_of_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        (submitted_at, name, first_name, last_name, email, phone, eircode, property_type, heard_about, whatsapp_consent, duplicate_of_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
-      .bind(submittedAt, name, firstName, lastName, email, phone, eircode, propertyType, whatsappConsent ? 1 : 0, duplicateOfId)
+      .bind(submittedAt, name, firstName, lastName, email, phone, eircode, propertyType, heardAbout, whatsappConsent ? 1 : 0, duplicateOfId)
       .run();
     leadId = insertResult.meta ? insertResult.meta.last_row_id : null;
   } catch (err) {
@@ -147,7 +149,7 @@ async function handleSubmit(request, env) {
 
   try {
     await sendOwnerNotification(env.RESEND_API_KEY, {
-      name, email, phone, eircode, propertyType, whatsappConsent, submittedAt,
+      name, email, phone, eircode, propertyType, heardAbout, whatsappConsent, submittedAt,
     });
   } catch (err) {
     console.error("Owner notification failed:", err);
@@ -270,7 +272,7 @@ async function handleListLeads(env) {
   try {
     const { results } = await env.DB.prepare(
       `SELECT id, submitted_at, name, first_name, last_name, email, phone, eircode,
-              property_type, whatsapp_consent, whatsapp_sent, status, difficulty, notes, duplicate_of_id
+              property_type, heard_about, whatsapp_consent, whatsapp_sent, status, difficulty, notes, duplicate_of_id
        FROM leads ORDER BY submitted_at DESC`
     ).all();
     return corsResponse(json({ leads: results }));
@@ -389,7 +391,7 @@ async function runBackup(env) {
 function leadsToCsv(rows) {
   const headers = [
     "id", "submitted_at", "name", "first_name", "last_name", "email", "phone", "eircode",
-    "property_type", "whatsapp_consent", "whatsapp_sent", "status", "difficulty", "notes", "duplicate_of_id",
+    "property_type", "heard_about", "whatsapp_consent", "whatsapp_sent", "status", "difficulty", "notes", "duplicate_of_id",
   ];
   const lines = [headers.join(",")];
   for (const row of rows) {
@@ -420,6 +422,8 @@ async function verifyTurnstile(token, ip, secret) {
   return outcome.success === true;
 }
 
+const HEARD_ABOUT_OPTIONS = ["Google Search", "Google Maps", "SEAI assessor list"];
+
 const OWNER_NOTIFICATION_EMAIL = "info@capitalbersolutions.ie";
 
 async function sendOwnerNotification(apiKey, lead) {
@@ -431,6 +435,7 @@ async function sendOwnerNotification(apiKey, lead) {
     ["Phone", lead.phone || "—"],
     ["Eircode", lead.eircode || "—"],
     ["Property type", lead.propertyType || "—"],
+    ["Heard about us via", lead.heardAbout || "—"],
     ["WhatsApp consent", lead.whatsappConsent ? "Yes" : "No"],
     ["Submitted", lead.submittedAt],
   ]
@@ -455,6 +460,7 @@ async function sendOwnerNotification(apiKey, lead) {
     `Phone: ${lead.phone || "—"}`,
     `Eircode: ${lead.eircode || "—"}`,
     `Property type: ${lead.propertyType || "—"}`,
+    `Heard about us via: ${lead.heardAbout || "—"}`,
     `WhatsApp consent: ${lead.whatsappConsent ? "Yes" : "No"}`,
     `Submitted: ${lead.submittedAt}`,
     "",
@@ -742,7 +748,7 @@ const ADMIN_HTML = String.raw`<!doctype html>
   tbody tr:hover{ background:var(--surface-2); }
 
   .name-cell strong{ display:block; font-weight:600; }
-  .name-cell .sub{ color:var(--text-muted); font-size:0.8rem; }
+  .name-cell .sub{ display:block; color:var(--text-muted); font-size:0.8rem; }
   .dup-chip{
     display:inline-flex; align-items:center; gap:4px; font-size:0.72rem; font-weight:600;
     color:var(--warn-fg); background:var(--warn-bg); padding:2px 7px; border-radius:99px; margin-top:4px;
@@ -924,7 +930,9 @@ const ADMIN_HTML = String.raw`<!doctype html>
 
       tr.innerHTML =
         '<td data-label="Name" class="name-cell"><strong>' + escapeHtml(lead.name) + '</strong>' +
-          '<span class="sub">' + escapeHtml(lead.property_type || '') + '</span>' + dupChip + '</td>' +
+          '<span class="sub">' + escapeHtml(lead.property_type || '') + '</span>' +
+          (lead.heard_about ? '<span class="sub">Via ' + escapeHtml(lead.heard_about) + '</span>' : '') +
+          dupChip + '</td>' +
         '<td data-label="Contact" class="contact-cell">' +
           '<a href="mailto:' + escapeHtml(lead.email) + '">' + escapeHtml(lead.email) + '</a>' +
           (lead.phone ? '<a href="tel:' + escapeHtml(lead.phone) + '">' + escapeHtml(lead.phone) + '</a>' : '') +
